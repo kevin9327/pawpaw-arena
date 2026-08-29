@@ -49,8 +49,9 @@ test('전투: 점사 → 사망 → 킬보상 30%·드랍 50% → 3초 후 리�
   for (let i = 0; i < 60 && !vic.dead; i++) { w.tick(1 / 30); vic.x = 700; vic.y = 500; }
   assert.equal(vic.dead, true);
   assert.equal(atk.score, 30); // 100 * 0.3
-  const dropped = [...w.pellets.values()].reduce((s, f) => s + f.xp, 0);
-  assert.equal(dropped, 150);   // ~30 trickle pellets
+  const dropped = [...w.pellets.values()].filter((f) => f.xp !== PELLET_XP)
+    .reduce((s, f) => s + f.xp, 0);
+  assert.equal(dropped, 50);   // 100 * 0.5 — 트리클 간식(5XP) 제외, 드랍 청크(10XP)만
   const kills = w.drainEvents().filter((e) => e.t === 'kill');
   assert.equal(kills.length, 1);
   assert.equal(kills[0].victimName, '나비');

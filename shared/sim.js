@@ -163,7 +163,7 @@ export class World {
     for (const p of this.players.values()) {
       if (p.dead) continue;
       const r = this.radiusOf(p) + 6;
-      for (const f of [...this.pellets.values()]) {
+      for (const f of this.pellets.values()) {
         if ((p.x - f.x) ** 2 + (p.y - f.y) ** 2 <= r * r) {
           this.pellets.delete(f.id);
           this._gainXp(p, f.xp);
