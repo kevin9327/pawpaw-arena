@@ -22,7 +22,7 @@ function hasStoredUnlock() {
 
 function bridgeSaysUnlocked() {
   try {
-    return window.PawBridge?.isPremium?.() === true;
+    return !!(window.PawBridge && typeof window.PawBridge.isPremium === 'function' && window.PawBridge.isPremium() === true);
   } catch {
     return false;
   }
@@ -80,7 +80,7 @@ function showFallbackModal() {
 }
 
 export function requestPurchase() {
-  const buy = window.PawBridge?.buyPremium;
+  const buy = window.PawBridge != null ? window.PawBridge.buyPremium : undefined;
   if (typeof buy === 'function') {
     try { buy.call(window.PawBridge); return; } catch {}
   }

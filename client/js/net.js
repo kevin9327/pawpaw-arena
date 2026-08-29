@@ -19,6 +19,6 @@ export function openSocket({ timeout = 3000, onState, onChoices, onWelcome, onCl
       else if (msg.t === 'welcome') onWelcome(msg);
       else if (msg.t === 'choices') onChoices(msg.choices);
     });
-    ws.addEventListener('close', () => onClose?.());
+    ws.addEventListener('close', () => (onClose != null ? onClose() : undefined));
   });
 }

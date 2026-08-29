@@ -25,7 +25,7 @@ export class Renderer {
       const a = Math.random() * Math.PI * 2;
       const s = 80 + Math.random() * 180;
       this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
-        life: 0.6, color: BODY[animal] ?? '#fff', r: 3 + Math.random() * 4 });
+        life: 0.6, color: (BODY[animal] != null ? BODY[animal] : '#fff'), r: 3 + Math.random() * 4 });
     }
   }
 
@@ -88,7 +88,7 @@ export class Renderer {
 
   _drawBullet(b) {
     const { ctx } = this;
-    ctx.fillStyle = BULLET[b.animal] ?? '#fff';
+    ctx.fillStyle = (BULLET[b.animal] != null ? BULLET[b.animal] : '#fff');
     if (b.animal === 'dog') { // 뼈다귀: 막대 + 양끝 원 2개
       ctx.save(); ctx.translate(b.x, b.y);
       ctx.fillRect(-b.r, -b.r / 3, b.r * 2, b.r / 1.5);

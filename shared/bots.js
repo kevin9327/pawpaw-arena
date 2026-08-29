@@ -4,8 +4,8 @@ export class BotBrain {
   constructor(playerId, { rng = Math.random, aimError = null, reactDelay = null } = {}) {
     this.playerId = playerId;
     this.rng = rng;
-    this.aimError = aimError ?? 0.05 + rng() * 0.35;   // 스펙: 0.05~0.4rad
-    this.reactDelay = reactDelay ?? 0.1 + rng() * 0.4;
+    this.aimError = aimError != null ? aimError : 0.05 + rng() * 0.35;   // 스펙: 0.05~0.4rad
+    this.reactDelay = reactDelay != null ? reactDelay : 0.1 + rng() * 0.4;
     this.sinceSeen = Infinity;
     this.strafeDir = rng() < 0.5 ? 1 : -1;
     this.strafeTimer = 0;
@@ -22,8 +22,8 @@ export class BotBrain {
 
     const dist = Math.hypot(enemy.x - me.x, enemy.y - me.y) || 1;
     const t = dist / ANIMALS[me.animal].bulletSpeed;      // 예측 조준
-    const px = enemy.x + (enemy.vx ?? 0) * t;
-    const py = enemy.y + (enemy.vy ?? 0) * t;
+    const px = enemy.x + (enemy.vx != null ? enemy.vx : 0) * t;
+    const py = enemy.y + (enemy.vy != null ? enemy.vy : 0) * t;
     const aim = Math.atan2(py - me.y, px - me.x) + (this.rng() - 0.5) * 2 * this.aimError;
     const fire = this.sinceSeen >= this.reactDelay;
 

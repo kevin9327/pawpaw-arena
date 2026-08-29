@@ -36,7 +36,7 @@ let lbTimer = 0;
 function socketCallbacks(ref) {
   return {
     onWelcome: (msg) => { myId = msg.id; },
-    onState: (msg) => { buffer.push(msg); latestEvents.push(...(msg.events ?? [])); },
+    onState: (msg) => { buffer.push(msg); latestEvents.push(...(msg.events != null ? msg.events : [])); },
     onChoices: (choices) => { handleChoices(choices); },
     onClose: () => {
       if (ref.sock && ref.sock === standbyWs) {
@@ -64,7 +64,7 @@ function handleChoices(choices) {
 }
 
 function pickUpgrade(stat) {
-  if (!pendingChoices?.includes(stat)) return;
+  if (!(pendingChoices != null && pendingChoices.includes(stat))) return;
   pendingChoices = null;
   $('upgrade').style.display = 'none';
   chooseUpgrade(stat);
@@ -78,8 +78,8 @@ addEventListener('keydown', (e) => {
 });
 
 function chooseUpgrade(stat) {
-  if (mode === 'online') ws?.send(JSON.stringify({ t: 'upgrade', stat }));
-  else offlineGame?.choose(stat);
+  if (mode === 'online') { if (ws != null) ws.send(JSON.stringify({ t: 'upgrade', stat })); }
+  else { if (offlineGame != null) offlineGame.choose(stat); }
 }
 
 async function startOnline(sock) {
@@ -182,7 +182,7 @@ function frame(now) {
     if (state) {
       const me = state.players.find((p) => p.id === myId);
       inp = input.sample(me, camera);
-      if (ws?.readyState === WebSocket.OPEN && sendTimer <= 0) {
+      if ((ws != null ? ws.readyState : undefined) === WebSocket.OPEN && sendTimer <= 0) {
         ws.send(JSON.stringify({ t: 'input', ...inp }));
         sendTimer = 1 / 30;
       }
@@ -206,7 +206,7 @@ function frame(now) {
       const top = [...state.players].sort((a, b) => b.score - a.score).slice(0, 10);
       $('leaderboard').innerHTML = '<b>🏆 리더보드</b>' + top.map((p, i) =>
         `<div${p.id === myId ? ' style="font-weight:bold;color:#2c56c9"' : ''}>` +
-        `${i + 1}. ${EMOJI[p.animal] ?? ''} ${escapeHtml(p.name)} — ${p.score}</div>`).join('');
+        `${i + 1}. ${EMOJI[p.animal] != null ? EMOJI[p.animal] : ''} ${escapeHtml(p.name)} — ${p.score}</div>`).join('');
     }
 
     // 킬 파티클 + 킬피드 + 효과음 (단일 루프, latestEvents 초기화는 루프 뒤 한 번만)
@@ -215,8 +215,8 @@ function frame(now) {
       renderer.addKillBurst(e.x, e.y, e.victimAnimal);
       const row = document.createElement('div');
       row.textContent = e.killerName
-        ? `${EMOJI[e.killerAnimal] ?? ''} ${e.killerName} ▶ ${EMOJI[e.victimAnimal] ?? ''} ${e.victimName}`
-        : `${EMOJI[e.victimAnimal] ?? ''} ${e.victimName} 사망`;
+        ? `${EMOJI[e.killerAnimal] != null ? EMOJI[e.killerAnimal] : ''} ${e.killerName} ▶ ${EMOJI[e.victimAnimal] != null ? EMOJI[e.victimAnimal] : ''} ${e.victimName}`
+        : `${EMOJI[e.victimAnimal] != null ? EMOJI[e.victimAnimal] : ''} ${e.victimName} 사망`;
       $('killfeed').prepend(row);
       setTimeout(() => row.remove(), 4000);
       if (e.killerId === myId) sfx.kill();
@@ -229,7 +229,7 @@ function frame(now) {
       prevMyHp = me.hp; prevMyDead = me.dead;
     }
 
-    if (inp?.fire && now / 1000 - lastShotAt > 0.15 && me && !me.dead) {
+    if ((inp != null && inp.fire) && now / 1000 - lastShotAt > 0.15 && me && !me.dead) {
       lastShotAt = now / 1000;
       sfx.shoot();
     }

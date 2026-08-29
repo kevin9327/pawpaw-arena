@@ -131,8 +131,9 @@ export class World {
     }
     if (killer && !killer.dead) this._gainXp(killer, Math.floor(victim.lifeXp * KILL_XP_RATIO));
     this.events.push({
-      t: 'kill', killerId: killer?.id ?? null,
-      killerName: killer?.name ?? '', killerAnimal: killer?.animal ?? '',
+      t: 'kill', killerId: (killer != null ? (killer.id != null ? killer.id : null) : null),
+      killerName: (killer != null ? (killer.name != null ? killer.name : '') : ''),
+      killerAnimal: (killer != null ? (killer.animal != null ? killer.animal : '') : ''),
       victimId: victim.id, victimName: victim.name, victimAnimal: victim.animal,
       x: Math.round(victim.x), y: Math.round(victim.y),
     });
