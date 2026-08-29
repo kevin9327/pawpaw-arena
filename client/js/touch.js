@@ -18,6 +18,7 @@ export class TouchControls {
     this.move = [0, 0];
     this.aim = 0;
     this.fire = false;
+    this.aimPoint = null;  // raw client coords for camera-corrected aim calculation
 
     // Sticky flag: once a real touch happens, touch controls take priority
     // over keyboard/mouse for the rest of the session (mobile device).
@@ -40,6 +41,7 @@ export class TouchControls {
 
   _onDown(e) {
     if (e.pointerType !== 'touch') return;
+    e.preventDefault();
     this.usingTouch = true;
 
     const isLeftHalf = e.clientX < innerWidth / 2;
@@ -61,6 +63,7 @@ export class TouchControls {
   }
 
   _onMove(e) {
+    if (e.pointerType === 'touch') e.preventDefault();
     if (e.pointerId === this.leftId) {
       this.leftPos = { x: e.clientX, y: e.clientY };
       this._updateJoystick();
@@ -95,7 +98,8 @@ export class TouchControls {
   }
 
   _updateAim(x, y) {
-    this.aim = Math.atan2(y - innerHeight / 2, x - innerWidth / 2);
+    // Store raw client coords; aim will be computed in input.js using camera transform
+    this.aimPoint = { x, y };
   }
 
   _showJoystick() {
@@ -111,6 +115,6 @@ export class TouchControls {
   }
 
   sample() {
-    return { move: this.move, aim: this.aim, fire: this.fire, active: this.usingTouch };
+    return { move: this.move, aimPoint: this.aimPoint, fire: this.fire, active: this.usingTouch };
   }
 }

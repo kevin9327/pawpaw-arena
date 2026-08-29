@@ -13,7 +13,16 @@ export class InputTracker {
   }
   sample(me, camera) {
     const t = this.touch.sample();
-    if (t.active) return { move: t.move, aim: t.aim, fire: t.fire };
+    if (t.active) {
+      // Compute aim from aimPoint using camera transform (same as mouse path)
+      let aim = 0;
+      if (t.aimPoint && me) {
+        const wx = camera.x + (t.aimPoint.x - innerWidth / 2);
+        const wy = camera.y + (t.aimPoint.y - innerHeight / 2);
+        aim = Math.atan2(wy - me.y, wx - me.x);
+      }
+      return { move: t.move, aim, fire: t.fire };
+    }
     let mx = 0, my = 0;
     if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) my -= 1;
     if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) my += 1;
