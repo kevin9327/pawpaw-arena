@@ -142,9 +142,15 @@ $('online-btn').addEventListener('click', () => {
 });
 
 $('play').addEventListener('click', async () => {
+  const chosen = document.querySelector('input[name=animal]:checked').value;
+  // 제출 시점 페이월 재확인 — 클릭 시점 잠금(라벨 리스너)이 어떤 이유로든 우회돼도 여기서 차단
+  if (PREMIUM_ANIMALS.includes(chosen) && !isPremiumUnlocked()) {
+    requestPurchase();
+    return;
+  }
   profile = {
     name: $('name').value.trim() || '나',
-    animal: document.querySelector('input[name=animal]:checked').value,
+    animal: chosen,
   };
   $('menu').style.display = 'none';
   try {
