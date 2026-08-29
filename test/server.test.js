@@ -50,6 +50,12 @@ test('정적 서빙: /shared/constants.js 를 JS로 제공, 경로 탈출은 403
   assert.match(ok.headers.get('content-type'), /javascript/);
   const bad = await fetch(`http://127.0.0.1:${port}/..%2f..%2fetc%2fpasswd`);
   assert.ok(bad.status === 403 || bad.status === 404);
+  const bypass = await fetch(`http://127.0.0.1:${port}/client/..%2fserver%2fapp.js`);
+  assert.equal(bypass.status, 404);
+  const pkg = await fetch(`http://127.0.0.1:${port}/package.json`);
+  assert.equal(pkg.status, 404);
+  const git = await fetch(`http://127.0.0.1:${port}/shared/..%2f.git%2fconfig`);
+  assert.equal(git.status, 404);
   server.close();
   await once(server, 'close');
 });

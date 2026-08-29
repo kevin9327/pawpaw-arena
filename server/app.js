@@ -9,6 +9,9 @@ import { pickBotName } from '../shared/names.js';
 import { ARENA, TICK_RATE, SNAPSHOT_RATE, ROOM_SIZE, ANIMALS } from '../shared/constants.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const ALLOW_INDEX = normalize(join(ROOT, 'index.html'));
+const ALLOW_CLIENT = normalize(join(ROOT, 'client')) + sep;
+const ALLOW_SHARED = normalize(join(ROOT, 'shared')) + sep;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
@@ -19,12 +22,9 @@ export function createServer() {
     try {
       let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
       if (path === '/') path = '/index.html';
-      if (!(path === '/index.html' || path.startsWith('/client/') || path.startsWith('/shared/'))) {
-        res.writeHead(404); return res.end('not found');
-      }
       const file = normalize(join(ROOT, path));
-      if (!file.startsWith(normalize(ROOT + sep)) && file !== normalize(ROOT)) {
-        res.writeHead(403); return res.end();
+      if (!(file === ALLOW_INDEX || file.startsWith(ALLOW_CLIENT) || file.startsWith(ALLOW_SHARED))) {
+        res.writeHead(404); return res.end('not found');
       }
       const data = await readFile(file);
       res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
