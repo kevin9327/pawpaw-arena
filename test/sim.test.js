@@ -64,9 +64,11 @@ test('자기 탄에는 안 맞는다', () => {
   const w = new World(mulberry32(4));
   const p = w.addPlayer({ name: '보리', animal: 'cat' });
   p.x = 1000; p.y = 1000;
-  w.setInput(p.id, { move: [0, 0], aim: 0, fire: true });
-  w.tick(1 / 30);
+  // 탄을 소유자 몸 위에 강제로 겹쳐 놓아 면역 가드를 직접 검증
+  w.bullets.push({ id: 999, owner: p.id, animal: 'cat', x: 1000, y: 1000,
+    vx: 0, vy: 0, damage: 8, radius: 6, ttl: 1 });
   const hp0 = p.hp;
-  for (let i = 0; i < 30; i++) w.tick(1 / 30);
-  assert.equal(p.hp, hp0);
+  w.tick(1 / 30);
+  assert.equal(p.hp, hp0);          // 면역: 데미지 없음
+  assert.equal(w.bullets.length, 1); // 탄도 소멸하지 않음
 });
