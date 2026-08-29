@@ -19,7 +19,13 @@ export const ANIMALS = {
   cat: { speed: 220, maxHp: 80,  damage: 8,  fireRate: 5,   bulletSpeed: 500, bulletRadius: 6 },
   dog: { speed: 190, maxHp: 100, damage: 14, fireRate: 3,   bulletSpeed: 450, bulletRadius: 8 },
   pig: { speed: 160, maxHp: 140, damage: 24, fireRate: 1.5, bulletSpeed: 400, bulletRadius: 11 },
+  // 프리미엄 (premium_animals IAP로 일괄 해제, 사이드그레이드 밸런스)
+  rabbit: { speed: 240, maxHp: 70, damage: 7,  fireRate: 6,   bulletSpeed: 520, bulletRadius: 5 },
+  duck:   { speed: 200, maxHp: 95, damage: 12, fireRate: 3.5, bulletSpeed: 450, bulletRadius: 7 },
+  fox:    { speed: 205, maxHp: 90, damage: 16, fireRate: 2.5, bulletSpeed: 480, bulletRadius: 8 },
 };
+export const FREE_ANIMALS = ['cat', 'dog', 'pig'];
+export const PREMIUM_ANIMALS = ['rabbit', 'duck', 'fox'];
 export const xpForLevel = (lvl) => Math.round(40 * Math.pow(1.35, lvl - 1));
 
 // 테스트/봇용 결정적 rng

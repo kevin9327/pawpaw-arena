@@ -12,11 +12,22 @@
   #menu { background: rgba(215, 236, 200, .95); flex-direction: column; gap: 18px; z-index: 10; }
   #menu h1 { font-size: 44px; color: #4a6b3a; }
   #menu input { font-size: 18px; padding: 10px 14px; border: 2px solid #9fc487; border-radius: 12px; width: 240px; text-align: center; }
-  .animals { display: flex; gap: 12px; }
-  .animals label { cursor: pointer; background: #fff; border: 3px solid transparent; border-radius: 16px; padding: 12px 18px; font-size: 34px; text-align: center; }
-  .animals label small { display: block; font-size: 13px; color: #666; }
+  .animals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 360px; margin: 0 auto; }
+  .animals label { position: relative; cursor: pointer; background: #fff; border: 3px solid transparent; border-radius: 16px; padding: 10px 6px; font-size: 30px; text-align: center; }
+  .animals label small { display: block; font-size: 12px; color: #666; }
   .animals input { display: none; }
   .animals input:checked + span { outline: 3px solid #6aa84f; outline-offset: 6px; border-radius: 12px; }
+  .animals label.locked { opacity: .48; filter: grayscale(.4); }
+  .animals label.locked input:checked + span { outline: none; }
+  .animals .lock-badge { position: absolute; top: 2px; right: 4px; font-size: 15px; display: none; }
+  .animals label.locked .lock-badge { display: block; }
+  @media (max-width: 420px) {
+    #menu h1 { font-size: 32px; }
+    .animals { gap: 6px; }
+    .animals label { font-size: 24px; padding: 8px 3px; border-width: 2px; }
+    .animals label small { font-size: 10px; }
+    #menu input { width: 200px; }
+  }
   #play { font-size: 20px; padding: 12px 44px; border: 0; border-radius: 14px; background: #6aa84f; color: #fff; cursor: pointer; }
   #hud { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 320px; text-align: center; z-index: 5; }
   #hud-hp { height: 14px; background: rgba(0,0,0,.25); border-radius: 7px; overflow: hidden; }
@@ -52,9 +63,12 @@
   <h1>🐾 멍냥아레나</h1>
   <input id="name" maxlength="12" placeholder="닉네임">
   <div class="animals">
-    <label><input type="radio" name="animal" value="cat" checked><span>🐱<small>빠름·물렁</small></span></label>
-    <label><input type="radio" name="animal" value="dog"><span>🐶<small>밸런스</small></span></label>
-    <label><input type="radio" name="animal" value="pig"><span>🐷<small>느림·탱크</small></span></label>
+    <label data-animal="cat"><input type="radio" name="animal" value="cat" checked><span>🐱<small>빠름·물렁</small></span></label>
+    <label data-animal="dog"><input type="radio" name="animal" value="dog"><span>🐶<small>밸런스</small></span></label>
+    <label data-animal="pig"><input type="radio" name="animal" value="pig"><span>🐷<small>느림·탱크</small></span></label>
+    <label data-animal="rabbit"><input type="radio" name="animal" value="rabbit"><span>🐰<small>매우빠름·유리몸</small></span><span class="lock-badge">🔒</span></label>
+    <label data-animal="duck"><input type="radio" name="animal" value="duck"><span>🦆<small>밸런스+</small></span><span class="lock-badge">🔒</span></label>
+    <label data-animal="fox"><input type="radio" name="animal" value="fox"><span>🦊<small>한방·중거리</small></span><span class="lock-badge">🔒</span></label>
   </div>
   <button id="play">싸우러 가기</button>
   <div style="font-size:13px;color:#557">이동 WASD · 조준/발사 마우스</div>

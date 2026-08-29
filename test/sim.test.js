@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../shared/sim.js';
-import { ARENA, ANIMALS, mulberry32, xpForLevel, PELLET_XP, UPGRADE_STEP } from '../shared/constants.js';
+import { ARENA, ANIMALS, PREMIUM_ANIMALS, FREE_ANIMALS, mulberry32, xpForLevel, PELLET_XP, UPGRADE_STEP } from '../shared/constants.js';
 
 test('플레이어 추가: 스탯이 동물 정의를 따르고 아레나 안에 스폰된다', () => {
   const w = new World(mulberry32(1));
@@ -108,6 +108,21 @@ test('봇은 레벨업 시 자동 선택', () => {
   const total = Object.values(b.upgrades).reduce((s, v) => s + v, 0);
   assert.equal(total, 1);
   assert.equal(b.choices, null);
+});
+
+test('동물 정의: 프리미엄 3종 포함 전체 6종 스탯이 유효하고 FREE∪PREMIUM이 ANIMALS 키셋과 일치한다', () => {
+  const stats = ['speed', 'maxHp', 'damage', 'fireRate', 'bulletSpeed', 'bulletRadius'];
+  const keys = Object.keys(ANIMALS);
+  assert.equal(keys.length, 6);
+  for (const key of keys) {
+    for (const stat of stats) {
+      const v = ANIMALS[key][stat];
+      assert.ok(Number.isFinite(v) && v > 0, `${key}.${stat}는 유한한 양수여야 함`);
+    }
+  }
+  const union = new Set([...FREE_ANIMALS, ...PREMIUM_ANIMALS]);
+  assert.equal(union.size, keys.length);
+  for (const key of keys) assert.ok(union.has(key));
 });
 
 test('setInput은 비정상 입력을 무해화한다', () => {

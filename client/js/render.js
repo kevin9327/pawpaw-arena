@@ -1,8 +1,8 @@
 import { ARENA, BASE_RADIUS, MAX_EXTRA_RADIUS } from '../../shared/constants.js';
 
-const BODY = { cat: '#b8c6e8', dog: '#e8c39e', pig: '#f5afc4' };
-const DARK = { cat: '#8fa3d4', dog: '#c79b6d', pig: '#e786a6' };
-const BULLET = { cat: '#d8def0', dog: '#fff6e8', pig: '#a9805b' };
+const BODY = { cat: '#b8c6e8', dog: '#e8c39e', pig: '#f5afc4', rabbit: '#f2ece2', duck: '#f6e6a3', fox: '#f2a874' };
+const DARK = { cat: '#8fa3d4', dog: '#c79b6d', pig: '#e786a6', rabbit: '#ddd0bb', duck: '#e0c96e', fox: '#d97f42' };
+const BULLET = { cat: '#d8def0', dog: '#fff6e8', pig: '#a9805b', rabbit: '#f2984c', duck: '#f0c419', fox: '#ff6b35' };
 
 export class Renderer {
   constructor(canvas) {
@@ -100,6 +100,29 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
       ctx.fillStyle = '#6d4c2b';
       ctx.beginPath(); ctx.arc(b.x, b.y - b.r * 0.7, b.r * 0.55, 0, 7); ctx.fill();
+    } else if (b.animal === 'rabbit') { // 당근: 주황 캡슐 + 초록 꼭지
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+      ctx.beginPath(); ctx.ellipse(0, 0, b.r * 1.35, b.r * 0.62, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#6aab52';
+      ctx.beginPath(); ctx.ellipse(-b.r * 1.15, 0, b.r * 0.42, b.r * 0.3, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    } else if (b.animal === 'duck') { // 빵조각: 둥근 황금 사각
+      ctx.save(); ctx.translate(b.x, b.y);
+      const s = b.r * 1.5, rr = b.r * 0.4;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-s / 2, -s / 2, s, s, rr);
+      else ctx.rect(-s / 2, -s / 2, s, s);
+      ctx.fill();
+      ctx.restore();
+    } else if (b.animal === 'fox') { // 불꽃: 원 + 꼬리(물방울)
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+      ctx.beginPath(); ctx.arc(b.r * 0.3, 0, b.r * 0.75, 0, 7); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-b.r * 1.3, 0);
+      ctx.lineTo(-b.r * 0.15, -b.r * 0.55);
+      ctx.lineTo(-b.r * 0.15, b.r * 0.55);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
     } else { // 털뭉치: 보풀 원
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
       ctx.strokeStyle = '#aab6dd'; ctx.lineWidth = 1.5;
@@ -142,9 +165,42 @@ export class Renderer {
       for (const s of [-1, 1]) {
         ctx.beginPath(); ctx.ellipse(-r * 0.5, s * r * 0.85, r * 0.5, r * 0.3, s * 0.6, 0, 7); ctx.fill();
       }
-    } else {
+    } else if (p.animal === 'pig') {
       for (const s of [-1, 1]) {
         ctx.beginPath(); ctx.arc(-r * 0.45, s * r * 0.8, r * 0.32, 0, 7); ctx.fill();
+      }
+    } else if (p.animal === 'rabbit') { // 길게 선 귀 2개 + 분홍 속귀
+      for (const s of [-1, 1]) {
+        ctx.save();
+        ctx.translate(-r * 0.25, s * r * 0.35);
+        ctx.rotate(s * 0.12);
+        ctx.fillStyle = dark;
+        ctx.beginPath(); ctx.ellipse(0, -r * 0.55, r * 0.22, r * 0.75, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = flashing ? '#ffffff' : '#f4b6c8';
+        ctx.beginPath(); ctx.ellipse(0, -r * 0.55, r * 0.1, r * 0.5, 0, 0, 7); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = dark;
+    } else if (p.animal === 'duck') { // 작은 깃털 술
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.35, s * r * 0.15 - r * 0.5, r * 0.1, r * 0.3, s * 0.3, 0, 7);
+        ctx.fill();
+      }
+    } else if (p.animal === 'fox') { // 뾰족한 삼각 귀 + 어두운 귀 끝
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.15, s * r * 0.45);
+        ctx.lineTo(-r * 0.85, s * r * 1.0);
+        ctx.lineTo(-r * 0.55, s * r * 0.2);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = flashing ? '#ffffff' : '#4a2f1e';
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.85, s * r * 1.0);
+        ctx.lineTo(-r * 0.68, s * r * 0.78);
+        ctx.lineTo(-r * 0.6, s * r * 0.95);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = dark;
       }
     }
 
@@ -171,6 +227,18 @@ export class Renderer {
       for (const s of [-1, 1]) {
         ctx.beginPath(); ctx.arc(r * 0.75, s * r * 0.07, r * 0.045, 0, 7); ctx.fill();
       }
+    } else if (p.animal === 'duck') { // 부리: 앞으로 튀어나온 납작한 주황 타원
+      ctx.fillStyle = flashing ? '#fff' : '#f0932b';
+      ctx.beginPath(); ctx.ellipse(r * 0.92, 0, r * 0.42, r * 0.22, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1; ctx.stroke();
+    } else if (p.animal === 'fox') { // 흰 주둥이 패치 + 어두운 코
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(r * 0.62, 0, r * 0.34, r * 0.26, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = flashing ? '#fff' : '#2a1810';
+      ctx.beginPath(); ctx.arc(r * 0.85, 0, r * 0.09, 0, 7); ctx.fill();
+    } else if (p.animal === 'rabbit') { // 작은 분홍 코
+      ctx.fillStyle = flashing ? '#fff' : '#e8879c';
+      ctx.beginPath(); ctx.arc(r * 0.78, 0, r * 0.07, 0, 7); ctx.fill();
     } else {
       ctx.fillStyle = '#222';
       ctx.beginPath(); ctx.arc(r * 0.8, 0, r * 0.08, 0, 7); ctx.fill();

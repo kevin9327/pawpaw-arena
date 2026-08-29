@@ -4,6 +4,8 @@ import { OfflineGame } from './offline.js';
 import { SnapshotBuffer } from './interp.js';
 import { openSocket } from './net.js';
 import { Sfx } from './audio.js';
+import { isPremiumUnlocked, requestPurchase, onUnlock } from './shop.js';
+import { PREMIUM_ANIMALS } from '../../shared/constants.js';
 
 const canvas = document.getElementById('game');
 const renderer = new Renderer(canvas);
@@ -22,7 +24,7 @@ const camera = { x: 1250, y: 1250 };
 let sendTimer = 0;
 
 const sfx = new Sfx();
-const EMOJI = { cat: '🐱', dog: '🐶', pig: '🐷' };
+const EMOJI = { cat: '🐱', dog: '🐶', pig: '🐷', rabbit: '🐰', duck: '🦆', fox: '🦊' };
 const STAT_LABELS = { damage: '🥊 공격력', fireRate: '⚡ 연사', speed: '👟 이동속도', maxHp: '❤️ 최대체력' };
 let pendingChoices = null;
 let lastShotAt = 0;
@@ -113,6 +115,25 @@ function scheduleReconnect() {
     }
   }, 10000);
 }
+
+// 프리미엄 동물 잠금 표시: 초기 렌더 + 해제 이벤트 시 갱신, 잠긴 카드 클릭은 선택 대신 구매 유도
+function refreshAnimalLocks() {
+  const unlocked = isPremiumUnlocked();
+  document.querySelectorAll('.animals label[data-animal]').forEach((label) => {
+    const locked = PREMIUM_ANIMALS.includes(label.dataset.animal) && !unlocked;
+    label.classList.toggle('locked', locked);
+  });
+}
+document.querySelectorAll('.animals label[data-animal]').forEach((label) => {
+  label.addEventListener('click', (e) => {
+    if (label.classList.contains('locked')) {
+      e.preventDefault();
+      requestPurchase();
+    }
+  });
+});
+onUnlock(refreshAnimalLocks);
+refreshAnimalLocks();
 
 $('online-btn').addEventListener('click', () => {
   if (!standbyWs) return;
