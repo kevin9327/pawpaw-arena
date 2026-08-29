@@ -109,3 +109,14 @@ test('봇은 레벨업 시 자동 선택', () => {
   assert.equal(total, 1);
   assert.equal(b.choices, null);
 });
+
+test('setInput은 비정상 입력을 무해화한다', () => {
+  const w = new World(mulberry32(8));
+  const p = w.addPlayer({ name: '나', animal: 'cat' });
+  w.setInput(p.id, { move: 5, aim: 'x', fire: 1 });
+  w.tick(1 / 30);
+  assert.ok(Number.isFinite(p.x));
+  w.setInput(p.id, { move: [Infinity, 0], aim: Infinity, fire: false });
+  w.tick(1 / 30);
+  assert.ok(Number.isFinite(p.x) && Number.isFinite(p.aim));
+});

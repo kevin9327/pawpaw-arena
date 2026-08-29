@@ -34,11 +34,14 @@ export class World {
   setInput(id, input) {
     const p = this.players.get(id);
     if (!p) return;
-    const [mx, my] = input.move ?? [0, 0];
+    const mv = Array.isArray(input.move) ? input.move : [0, 0];
+    const mx = Number.isFinite(Number(mv[0])) ? Number(mv[0]) : 0;
+    const my = Number.isFinite(Number(mv[1])) ? Number(mv[1]) : 0;
+    const aim = Number(input.aim);
     const len = Math.hypot(mx, my);
     p.input = {
-      move: len > 1e-9 ? [mx / len, my / len] : [0, 0],
-      aim: Number(input.aim) || 0,
+      move: len > 1e-9 && Number.isFinite(len) ? [mx / len, my / len] : [0, 0],
+      aim: Number.isFinite(aim) ? aim : 0,
       fire: !!input.fire,
     };
   }

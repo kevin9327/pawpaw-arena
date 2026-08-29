@@ -67,6 +67,9 @@ export class Renderer {
       this.lastHp.set(p.id, p.hp);
       this._drawAnimal(p, p.id === myId);
     }
+    for (const id of [...this.lastHp.keys()]) {
+      if (!state.players.some((p) => p.id === id)) { this.lastHp.delete(id); this.flash.delete(id); }
+    }
 
     // 파티클
     for (const pt of this.particles) {

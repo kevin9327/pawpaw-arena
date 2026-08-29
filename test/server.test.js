@@ -53,3 +53,22 @@ test('정적 서빙: /shared/constants.js 를 JS로 제공, 경로 탈출은 403
   server.close();
   await once(server, 'close');
 });
+
+test('악성 입력에도 서버가 죽지 않는다', async () => {
+  const server = createServer().listen(0);
+  await once(server, 'listening');
+  const port = server.address().port;
+  const ws = new WebSocket(`ws://127.0.0.1:${port}`);
+  await once(ws, 'open');
+  ws.send(JSON.stringify({ t: 'join', name: '그리퍼', animal: 'cat' }));
+  await once(ws, 'message'); // welcome
+  ws.send(JSON.stringify({ t: 'input', move: 5 }));
+  ws.send(JSON.stringify({ t: 'input', move: [Infinity, 0], aim: Infinity }));
+  ws.send('not json');
+  const s = await nextState(ws);
+  const me = s.players.find((p) => p.name === '그리퍼');
+  assert.ok(me && Number.isFinite(me.x));
+  ws.close();
+  server.close();
+  await once(server, 'close');
+});
