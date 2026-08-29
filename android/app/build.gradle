@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.petaflo.pawpawarena'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.petaflo.pawpawarena'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.android.billingclient:billing:7.1.1'
+}
+
+// 저장소 루트의 게임 자산(index.html, client/, shared/)을 앱 assets/game/ 로 복사.
+// index.html은 상대경로(client/js/main.js, ../../shared/*)로 참조하므로
+// assets/game 루트에 index.html + 그 아래 client/, shared/ 구조를 그대로 재현한다.
+def gameAssetsDir = new File(projectDir, 'src/main/assets/game')
+def repoRoot = rootProject.projectDir.parentFile
+
+tasks.register('copyGameAssets', Copy) {
+    description = '저장소 루트의 index.html/client/shared를 app/src/main/assets/game 로 복사'
+    from(repoRoot) {
+        include 'index.html'
+        include 'client/**'
+        include 'shared/**'
+    }
+    into gameAssetsDir
+}
+
+tasks.named('preBuild').configure {
+    dependsOn 'copyGameAssets'
+}
