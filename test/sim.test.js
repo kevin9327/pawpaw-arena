@@ -28,3 +28,45 @@ test('xpForLevel 커브', () => {
   assert.equal(xpForLevel(1), 40);
   assert.equal(xpForLevel(2), Math.round(40 * 1.35));
 });
+
+test('발사: fire 입력 시 탄 1개 생성 후 쿨다운 동안 재발사 안 됨', () => {
+  const w = new World(mulberry32(2));
+  const p = w.addPlayer({ name: '뽀삐', animal: 'dog' });
+  w.setInput(p.id, { move: [0, 0], aim: 0, fire: true });
+  w.tick(1 / 30);
+  assert.equal(w.bullets.length, 1);
+  w.tick(1 / 30); // 쿨다운(1/3s) 중
+  assert.equal(w.bullets.length, 1);
+});
+
+test('전투: 점사 → 사망 → 킬보상 30%·드랍 50% → 3초 후 리스폰', () => {
+  const w = new World(mulberry32(3));
+  const atk = w.addPlayer({ name: '꿀꿀이', animal: 'pig' });
+  const vic = w.addPlayer({ name: '나비', animal: 'cat' });
+  atk.x = 500; atk.y = 500; vic.x = 700; vic.y = 500;
+  vic.hp = 1; vic.lifeXp = 100; vic.score = 100;
+  w.setInput(atk.id, { move: [0, 0], aim: 0, fire: true });
+  for (let i = 0; i < 60 && !vic.dead; i++) { w.tick(1 / 30); vic.x = 700; vic.y = 500; }
+  assert.equal(vic.dead, true);
+  assert.equal(atk.score, 30); // 100 * 0.3
+  const dropped = [...w.pellets.values()].reduce((s, f) => s + f.xp, 0);
+  assert.equal(dropped, 50);   // 100 * 0.5
+  const kills = w.drainEvents().filter((e) => e.t === 'kill');
+  assert.equal(kills.length, 1);
+  assert.equal(kills[0].victimName, '나비');
+  for (let i = 0; i < 100 && vic.dead; i++) w.tick(1 / 30); // 3초+
+  assert.equal(vic.dead, false);
+  assert.equal(vic.level, 1);
+  assert.equal(vic.hp, w.maxHpOf(vic));
+});
+
+test('자기 탄에는 안 맞는다', () => {
+  const w = new World(mulberry32(4));
+  const p = w.addPlayer({ name: '보리', animal: 'cat' });
+  p.x = 1000; p.y = 1000;
+  w.setInput(p.id, { move: [0, 0], aim: 0, fire: true });
+  w.tick(1 / 30);
+  const hp0 = p.hp;
+  for (let i = 0; i < 30; i++) w.tick(1 / 30);
+  assert.equal(p.hp, hp0);
+});

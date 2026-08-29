@@ -1,4 +1,5 @@
-import { ARENA, ANIMALS, BASE_RADIUS, MAX_EXTRA_RADIUS, UPGRADE_STEP } from './constants.js';
+import { ARENA, ANIMALS, BASE_RADIUS, MAX_EXTRA_RADIUS, UPGRADE_STEP, BULLET_TTL,
+  RESPAWN_DELAY, DEATH_DROP_RATIO, KILL_XP_RATIO } from './constants.js';
 
 export class World {
   constructor(rng = Math.random) {
@@ -18,7 +19,7 @@ export class World {
       x: 100 + this.rng() * (ARENA.w - 200),
       y: 100 + this.rng() * (ARENA.h - 200),
       vx: 0, vy: 0, aim: 0,
-      hp: ANIMALS[animal].maxHp, level: 1, xp: 0, score: 0,
+      hp: ANIMALS[animal].maxHp, level: 1, xp: 0, score: 0, lifeXp: 0,
       upgrades: { damage: 0, fireRate: 0, speed: 0, maxHp: 0 },
       choices: null, fireCooldown: 0, respawnTimer: 0, dead: false,
       input: { move: [0, 0], aim: 0, fire: false },
@@ -70,9 +71,84 @@ export class World {
     this._tickPellets(dt);     // Task 4
   }
 
-  _tickRespawn() {} // Task 3에서 구현
-  _tickFire() {}    // Task 3에서 구현
-  _tickBullets() {} // Task 3에서 구현
+  _tickRespawn(p, dt) {
+    p.respawnTimer -= dt;
+    if (p.respawnTimer > 0) return;
+    p.dead = false;
+    p.level = 1; p.xp = 0; p.lifeXp = 0;
+    p.upgrades = { damage: 0, fireRate: 0, speed: 0, maxHp: 0 };
+    p.choices = null; p.fireCooldown = 0;
+    p.hp = this.maxHpOf(p);
+    p.x = 100 + this.rng() * (ARENA.w - 200);
+    p.y = 100 + this.rng() * (ARENA.h - 200);
+  }
+
+  _tickFire(p, dt) {
+    p.fireCooldown = Math.max(0, p.fireCooldown - dt);
+    if (!p.input.fire || p.fireCooldown > 0) return;
+    const a = ANIMALS[p.animal];
+    const r = this.radiusOf(p);
+    this.bullets.push({
+      id: this.nextId++, owner: p.id, animal: p.animal,
+      x: p.x + Math.cos(p.aim) * (r + a.bulletRadius + 2),
+      y: p.y + Math.sin(p.aim) * (r + a.bulletRadius + 2),
+      vx: Math.cos(p.aim) * a.bulletSpeed, vy: Math.sin(p.aim) * a.bulletSpeed,
+      damage: this.statOf(p, 'damage'), radius: a.bulletRadius, ttl: BULLET_TTL,
+    });
+    p.fireCooldown = 1 / this.statOf(p, 'fireRate');
+  }
+
+  _tickBullets(dt) {
+    for (const b of this.bullets) {
+      b.x += b.vx * dt; b.y += b.vy * dt; b.ttl -= dt;
+      if (b.ttl <= 0) continue;
+      if (b.x < 0 || b.x > ARENA.w || b.y < 0 || b.y > ARENA.h) { b.ttl = 0; continue; }
+      for (const p of this.players.values()) {
+        if (p.dead || p.id === b.owner) continue;
+        const rr = this.radiusOf(p) + b.radius;
+        if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 <= rr * rr) {
+          p.hp -= b.damage; b.ttl = 0;
+          if (p.hp <= 0) this._kill(p, this.players.get(b.owner));
+          break;
+        }
+      }
+    }
+    this.bullets = this.bullets.filter((b) => b.ttl > 0);
+  }
+
+  _kill(victim, killer) {
+    victim.dead = true;
+    victim.respawnTimer = RESPAWN_DELAY;
+    let remain = Math.floor(victim.lifeXp * DEATH_DROP_RATIO);
+    while (remain > 0) {
+      const chunk = Math.min(10, remain); remain -= chunk;
+      this._spawnPellet(victim.x + (this.rng() - 0.5) * 120,
+                        victim.y + (this.rng() - 0.5) * 120, chunk);
+    }
+    if (killer && !killer.dead) this._gainXp(killer, Math.floor(victim.lifeXp * KILL_XP_RATIO));
+    this.events.push({
+      t: 'kill', killerId: killer?.id ?? null,
+      killerName: killer?.name ?? '', killerAnimal: killer?.animal ?? '',
+      victimId: victim.id, victimName: victim.name, victimAnimal: victim.animal,
+      x: Math.round(victim.x), y: Math.round(victim.y),
+    });
+  }
+
+  _spawnPellet(x, y, xp) {
+    const id = this.nextId++;
+    this.pellets.set(id, {
+      id,
+      x: Math.min(ARENA.w - 10, Math.max(10, x)),
+      y: Math.min(ARENA.h - 10, Math.max(10, y)),
+      xp,
+    });
+  }
+
+  // Task 4에서 레벨업 로직으로 확장된다 — 지금은 점수 적립만
+  _gainXp(p, amount) {
+    p.xp += amount; p.lifeXp += amount; p.score += amount;
+  }
+
   _tickPellets() {} // Task 4에서 구현
 
   snapshot() {
