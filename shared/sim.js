@@ -1,5 +1,6 @@
 import { ARENA, ANIMALS, BASE_RADIUS, MAX_EXTRA_RADIUS, UPGRADE_STEP, BULLET_TTL,
-  RESPAWN_DELAY, DEATH_DROP_RATIO, KILL_XP_RATIO } from './constants.js';
+  RESPAWN_DELAY, DEATH_DROP_RATIO, KILL_XP_RATIO,
+  PELLET_TARGET, PELLET_XP, UPGRADE_MAX, STATS, xpForLevel } from './constants.js';
 
 export class World {
   constructor(rng = Math.random) {
@@ -144,12 +145,54 @@ export class World {
     });
   }
 
-  // Task 4에서 레벨업 로직으로 확장된다 — 지금은 점수 적립만
   _gainXp(p, amount) {
     p.xp += amount; p.lifeXp += amount; p.score += amount;
+    while (p.xp >= xpForLevel(p.level)) {
+      p.xp -= xpForLevel(p.level);
+      p.level++;
+      this._offerChoices(p);
+    }
   }
 
-  _tickPellets() {} // Task 4에서 구현
+  _tickPellets() {
+    const deficit = PELLET_TARGET - this.pellets.size;
+    for (let i = 0; i < Math.min(2, deficit); i++) {
+      this._spawnPellet(20 + this.rng() * (ARENA.w - 40),
+                        20 + this.rng() * (ARENA.h - 40), PELLET_XP);
+    }
+    for (const p of this.players.values()) {
+      if (p.dead) continue;
+      const r = this.radiusOf(p) + 6;
+      for (const f of [...this.pellets.values()]) {
+        if ((p.x - f.x) ** 2 + (p.y - f.y) ** 2 <= r * r) {
+          this.pellets.delete(f.id);
+          this._gainXp(p, f.xp);
+        }
+      }
+    }
+  }
+
+  _offerChoices(p) {
+    const avail = STATS.filter((s) => p.upgrades[s] < UPGRADE_MAX);
+    if (!avail.length) { p.choices = null; return; }
+    const shuffled = [...avail].sort(() => this.rng() - 0.5);
+    p.choices = shuffled.slice(0, Math.min(3, shuffled.length));
+    if (p.isBot) {
+      this.chooseUpgrade(p.id, p.choices[Math.floor(this.rng() * p.choices.length)]);
+    } else {
+      this.events.push({ t: 'choices', id: p.id, choices: p.choices });
+    }
+  }
+
+  chooseUpgrade(id, stat) {
+    const p = this.players.get(id);
+    if (!p || !p.choices || !p.choices.includes(stat)) return false;
+    const hpFrac = p.hp / this.maxHpOf(p);
+    p.upgrades[stat] = Math.min(UPGRADE_MAX, p.upgrades[stat] + 1);
+    p.choices = null;
+    if (stat === 'maxHp') p.hp = hpFrac * this.maxHpOf(p);
+    return true;
+  }
 
   snapshot() {
     return {

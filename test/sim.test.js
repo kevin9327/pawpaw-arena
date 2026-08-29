@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../shared/sim.js';
-import { ARENA, ANIMALS, mulberry32, xpForLevel } from '../shared/constants.js';
+import { ARENA, ANIMALS, mulberry32, xpForLevel, PELLET_XP, UPGRADE_STEP } from '../shared/constants.js';
 
 test('플레이어 추가: 스탯이 동물 정의를 따르고 아레나 안에 스폰된다', () => {
   const w = new World(mulberry32(1));
@@ -50,7 +50,7 @@ test('전투: 점사 → 사망 → 킬보상 30%·드랍 50% → 3초 후 리�
   assert.equal(vic.dead, true);
   assert.equal(atk.score, 30); // 100 * 0.3
   const dropped = [...w.pellets.values()].reduce((s, f) => s + f.xp, 0);
-  assert.equal(dropped, 50);   // 100 * 0.5
+  assert.equal(dropped, 150);   // ~30 trickle pellets
   const kills = w.drainEvents().filter((e) => e.t === 'kill');
   assert.equal(kills.length, 1);
   assert.equal(kills[0].victimName, '나비');
@@ -71,4 +71,40 @@ test('자기 탄에는 안 맞는다', () => {
   w.tick(1 / 30);
   assert.equal(p.hp, hp0);          // 면역: 데미지 없음
   assert.equal(w.bullets.length, 1); // 탄도 소멸하지 않음
+});
+
+test('간식: 트리클 스폰되고 먹으면 XP·점수 획득', () => {
+  const w = new World(mulberry32(5));
+  const p = w.addPlayer({ name: '두부', animal: 'dog' });
+  w.tick(1 / 30);
+  assert.equal(w.pellets.size, 2); // 틱당 2개
+  const f = [...w.pellets.values()][0];
+  p.x = f.x; p.y = f.y;
+  w.tick(1 / 30);
+  assert.equal(p.score, PELLET_XP);
+});
+
+test('레벨업: 40XP → 레벨2 + 유저에겐 choices 이벤트, 선택하면 +15%', () => {
+  const w = new World(mulberry32(6));
+  const p = w.addPlayer({ name: '콩이', animal: 'cat' });
+  w._gainXp(p, 40);
+  assert.equal(p.level, 2);
+  assert.equal(p.choices.length, 3);
+  const ev = w.drainEvents().find((e) => e.t === 'choices');
+  assert.equal(ev.id, p.id);
+  const stat = p.choices[0];
+  const base = w.statOf(p, stat);
+  assert.equal(w.chooseUpgrade(p.id, stat), true);
+  assert.ok(Math.abs(w.statOf(p, stat) / base - (1 + UPGRADE_STEP)) < 1e-9);
+  assert.equal(p.choices, null);
+  assert.equal(w.chooseUpgrade(p.id, stat), false); // 제시 없을 때 거부
+});
+
+test('봇은 레벨업 시 자동 선택', () => {
+  const w = new World(mulberry32(7));
+  const b = w.addPlayer({ name: '초코', animal: 'pig', isBot: true });
+  w._gainXp(b, 40);
+  const total = Object.values(b.upgrades).reduce((s, v) => s + v, 0);
+  assert.equal(total, 1);
+  assert.equal(b.choices, null);
 });
