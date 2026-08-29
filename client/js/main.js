@@ -3,6 +3,7 @@ import { InputTracker } from './input.js';
 import { OfflineGame } from './offline.js';
 import { SnapshotBuffer } from './interp.js';
 import { openSocket } from './net.js';
+import { Sfx } from './audio.js';
 
 const canvas = document.getElementById('game');
 const renderer = new Renderer(canvas);
@@ -19,6 +20,15 @@ const buffer = new SnapshotBuffer(0.1);
 let latestEvents = [];
 const camera = { x: 1250, y: 1250 };
 let sendTimer = 0;
+
+const sfx = new Sfx();
+const EMOJI = { cat: '🐱', dog: '🐶', pig: '🐷' };
+const STAT_LABELS = { damage: '🥊 공격력', fireRate: '⚡ 연사', speed: '👟 이동속도', maxHp: '❤️ 최대체력' };
+let pendingChoices = null;
+let lastShotAt = 0;
+let prevMyHp = null;
+let prevMyDead = false;
+let lbTimer = 0;
 
 // ref.sock으로 어느 소켓의 close인지 구분한다 (활성 vs 대기 소켓)
 function socketCallbacks(ref) {
@@ -39,9 +49,31 @@ function socketCallbacks(ref) {
 }
 
 function handleChoices(choices) {
-  // Task 9에서 UI로 교체 — 지금은 첫 항목 자동 선택
-  chooseUpgrade(choices[0]);
+  pendingChoices = choices;
+  const box = $('upgrade');
+  box.innerHTML = '';
+  choices.forEach((stat, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = `${i + 1}. ${STAT_LABELS[stat]}`;
+    btn.addEventListener('click', () => pickUpgrade(stat));
+    box.appendChild(btn);
+  });
+  box.style.display = 'flex';
 }
+
+function pickUpgrade(stat) {
+  if (!pendingChoices?.includes(stat)) return;
+  pendingChoices = null;
+  $('upgrade').style.display = 'none';
+  chooseUpgrade(stat);
+  sfx.levelup();
+}
+
+addEventListener('keydown', (e) => {
+  if (!pendingChoices) return;
+  const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
+  if (i >= 0 && pendingChoices[i]) pickUpgrade(pendingChoices[i]);
+});
 
 function chooseUpgrade(stat) {
   if (mode === 'online') ws?.send(JSON.stringify({ t: 'upgrade', stat }));
@@ -108,10 +140,11 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   let state = null;
+  let inp = null;
 
   if (mode === 'offline' && offlineGame) {
     const meLive = offlineGame.world.players.get(myId);
-    const inp = input.sample(meLive, camera);
+    inp = input.sample(meLive, camera);
     const out = offlineGame.step(dt, inp);
     state = out.state;
     latestEvents.push(...out.events.filter((e) => e.t !== 'choices' || e.id !== myId));
@@ -119,10 +152,13 @@ function frame(now) {
   } else if (mode === 'online') {
     state = buffer.sample();
     sendTimer -= dt;
-    if (state && ws?.readyState === WebSocket.OPEN && sendTimer <= 0) {
+    if (state) {
       const me = state.players.find((p) => p.id === myId);
-      ws.send(JSON.stringify({ t: 'input', ...input.sample(me, camera) }));
-      sendTimer = 1 / 30;
+      inp = input.sample(me, camera);
+      if (ws?.readyState === WebSocket.OPEN && sendTimer <= 0) {
+        ws.send(JSON.stringify({ t: 'input', ...inp }));
+        sendTimer = 1 / 30;
+      }
     }
   }
 
@@ -135,12 +171,49 @@ function frame(now) {
       $('hud-level').textContent = `Lv ${me.level} · ${me.score}점`;
       $('respawn').style.display = me.dead ? 'flex' : 'none';
     }
+
+    // 리더보드 (0.25초 스로틀)
+    lbTimer -= dt;
+    if (lbTimer <= 0) {
+      lbTimer = 0.25;
+      const top = [...state.players].sort((a, b) => b.score - a.score).slice(0, 10);
+      $('leaderboard').innerHTML = '<b>🏆 리더보드</b>' + top.map((p, i) =>
+        `<div${p.id === myId ? ' style="font-weight:bold;color:#2c56c9"' : ''}>` +
+        `${i + 1}. ${EMOJI[p.animal] ?? ''} ${escapeHtml(p.name)} — ${p.score}</div>`).join('');
+    }
+
+    // 킬 파티클 + 킬피드 + 효과음 (단일 루프, latestEvents 초기화는 루프 뒤 한 번만)
     for (const e of latestEvents) {
-      if (e.t === 'kill') renderer.addKillBurst(e.x, e.y, e.victimAnimal);
+      if (e.t !== 'kill') continue;
+      renderer.addKillBurst(e.x, e.y, e.victimAnimal);
+      const row = document.createElement('div');
+      row.textContent = e.killerName
+        ? `${EMOJI[e.killerAnimal] ?? ''} ${e.killerName} ▶ ${EMOJI[e.victimAnimal] ?? ''} ${e.victimName}`
+        : `${EMOJI[e.victimAnimal] ?? ''} ${e.victimName} 사망`;
+      $('killfeed').prepend(row);
+      setTimeout(() => row.remove(), 4000);
+      if (e.killerId === myId) sfx.kill();
     }
     latestEvents = [];
+
+    if (me) {
+      if (prevMyHp != null && me.hp < prevMyHp) sfx.hit();
+      if (me.dead && !prevMyDead) { sfx.death(); pendingChoices = null; $('upgrade').style.display = 'none'; }
+      prevMyHp = me.hp; prevMyDead = me.dead;
+    }
+
+    if (inp?.fire && now / 1000 - lastShotAt > 0.15 && me && !me.dead) {
+      lastShotAt = now / 1000;
+      sfx.shoot();
+    }
+
     renderer.draw(state, myId, camera, dt);
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
