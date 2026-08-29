@@ -1,7 +1,10 @@
+import { TouchControls } from './touch.js';
+
 export class InputTracker {
   constructor(canvas) {
     this.keys = new Set();
     this.mouse = { x: innerWidth / 2, y: innerHeight / 2, down: false };
+    this.touch = new TouchControls(canvas);
     addEventListener('keydown', (e) => { this.keys.add(e.code); });
     addEventListener('keyup', (e) => { this.keys.delete(e.code); });
     canvas.addEventListener('mousemove', (e) => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
@@ -9,6 +12,8 @@ export class InputTracker {
     addEventListener('mouseup', () => { this.mouse.down = false; });
   }
   sample(me, camera) {
+    const t = this.touch.sample();
+    if (t.active) return { move: t.move, aim: t.aim, fire: t.fire };
     let mx = 0, my = 0;
     if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) my -= 1;
     if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) my += 1;

@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>멍냥아레나</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-  #game { display: block; background: #d7ecc8; }
+  #game { display: block; background: #d7ecc8; touch-action: none; }
   .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   #menu { background: rgba(215, 236, 200, .95); flex-direction: column; gap: 18px; z-index: 10; }
   #menu h1 { font-size: 44px; color: #4a6b3a; }
@@ -30,6 +30,10 @@
   #respawn { display: none; background: rgba(0,0,0,.35); color: #fff; font-size: 28px; z-index: 8; }
   #online-btn { position: absolute; top: 12px; left: 12px; display: none; font-size: 14px; padding: 8px 14px; border: 0; border-radius: 10px; background: #4e5ae8; color: #fff; cursor: pointer; z-index: 6; }
   #mode-tag { position: absolute; bottom: 8px; left: 12px; font-size: 12px; color: #6a6a6a; z-index: 5; }
+  #touch-joy-base, #touch-joy-knob { position: fixed; left: 0; top: 0; border-radius: 50%; background: rgba(255,255,255,.28); pointer-events: none; z-index: 4; display: none; }
+  #touch-joy-base { width: 120px; height: 120px; border: 2px solid rgba(255,255,255,.5); }
+  #touch-joy-knob { width: 50px; height: 50px; background: rgba(255,255,255,.55); }
+  #touch-joy-base.tc-visible, #touch-joy-knob.tc-visible { display: block; }
 </style>
 </head>
 <body>
