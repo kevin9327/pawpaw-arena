@@ -41,6 +41,7 @@ class BillingManager implements PurchasesUpdatedListener {
 
     private volatile boolean billingReady = false;
     private volatile boolean premiumUnlocked = false;
+    private volatile boolean reconnectInFlight = false;
     private volatile ProductDetails cachedProductDetails = null;
 
     BillingManager(Activity activity, Listener listener) {
@@ -54,6 +55,7 @@ class BillingManager implements PurchasesUpdatedListener {
     }
 
     void startConnection() {
+        reconnectInFlight = false;
         billingClient.startConnection(new BillingClientStateListener() {
             @Override
             public void onBillingSetupFinished(BillingResult billingResult) {
@@ -70,7 +72,12 @@ class BillingManager implements PurchasesUpdatedListener {
             @Override
             public void onBillingServiceDisconnected() {
                 billingReady = false;
-                Log.w(TAG, "빌링 서비스 연결이 끊어짐");
+                Log.w(TAG, "빌링 서비스 연결이 끊어짐 - 재연결 시도");
+                // 중복 재연결 방지: 재연결이 이미 진행 중이면 스킵한다.
+                if (!reconnectInFlight) {
+                    reconnectInFlight = true;
+                    startConnection();
+                }
             }
         });
     }
@@ -140,6 +147,11 @@ class BillingManager implements PurchasesUpdatedListener {
             handlePurchases(purchases);
         } else if (code == BillingClient.BillingResponseCode.USER_CANCELED) {
             Log.i(TAG, "사용자가 구매를 취소함");
+        } else if (code == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {
+            // 이미 보유 중인데 잠금 해제가 안 된 상태 — 기존 복원 경로(queryPurchasesAsync)를
+            // 재사용해 acknowledge + premiumUnlocked + onPremiumUnlocked 콜백까지 처리한다.
+            Log.i(TAG, "이미 보유한 상품 - 구매 내역 복원으로 잠금 해제 시도");
+            restorePurchases();
         } else {
             Log.w(TAG, "구매 갱신 실패: " + code + " " + billingResult.getDebugMessage());
         }

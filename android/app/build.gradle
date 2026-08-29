@@ -29,6 +29,7 @@ android {
 
 dependencies {
     implementation 'com.android.billingclient:billing:7.1.1'
+    implementation 'androidx.webkit:webkit:1.11.0'
 }
 
 // 저장소 루트의 게임 자산(index.html, client/, shared/)을 앱 assets/game/ 로 복사.
