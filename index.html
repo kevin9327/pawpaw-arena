@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>멍냥아레나</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+  #game { display: block; background: #d7ecc8; }
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #menu { background: rgba(215, 236, 200, .95); flex-direction: column; gap: 18px; z-index: 10; }
+  #menu h1 { font-size: 44px; color: #4a6b3a; }
+  #menu input { font-size: 18px; padding: 10px 14px; border: 2px solid #9fc487; border-radius: 12px; width: 240px; text-align: center; }
+  .animals { display: flex; gap: 12px; }
+  .animals label { cursor: pointer; background: #fff; border: 3px solid transparent; border-radius: 16px; padding: 12px 18px; font-size: 34px; text-align: center; }
+  .animals label small { display: block; font-size: 13px; color: #666; }
+  .animals input { display: none; }
+  .animals input:checked + span { outline: 3px solid #6aa84f; outline-offset: 6px; border-radius: 12px; }
+  #play { font-size: 20px; padding: 12px 44px; border: 0; border-radius: 14px; background: #6aa84f; color: #fff; cursor: pointer; }
+  #hud { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 320px; text-align: center; z-index: 5; }
+  #hud-hp { height: 14px; background: rgba(0,0,0,.25); border-radius: 7px; overflow: hidden; }
+  #hud-hp-fill { height: 100%; width: 100%; background: #6fce6f; transition: width .15s; }
+  #hud-level { color: #333; font-size: 14px; margin-top: 4px; text-shadow: 0 1px 0 #fff; }
+  #leaderboard { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.75); border-radius: 12px; padding: 10px 14px; font-size: 13px; min-width: 170px; z-index: 5; }
+  #killfeed { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 14px; color: #444; z-index: 5; }
+  #killfeed div { background: rgba(255,255,255,.7); border-radius: 8px; padding: 2px 10px; margin-bottom: 4px; }
+  #upgrade { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); display: none; gap: 10px; z-index: 6; }
+  #upgrade button { font-size: 15px; padding: 10px 16px; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); cursor: pointer; }
+  #respawn { display: none; background: rgba(0,0,0,.35); color: #fff; font-size: 28px; z-index: 8; }
+  #online-btn { position: absolute; top: 12px; left: 12px; display: none; font-size: 14px; padding: 8px 14px; border: 0; border-radius: 10px; background: #4e5ae8; color: #fff; cursor: pointer; z-index: 6; }
+  #mode-tag { position: absolute; bottom: 8px; left: 12px; font-size: 12px; color: #6a6a6a; z-index: 5; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="hud-hp"><div id="hud-hp-fill"></div></div>
+  <div id="hud-level">Lv 1 · 0점</div>
+</div>
+<div id="leaderboard"></div>
+<div id="killfeed"></div>
+<div id="upgrade"></div>
+<button id="online-btn">온라인 방 입장</button>
+<div id="mode-tag"></div>
+<div id="respawn" class="overlay">잡아먹혔다! 곧 부활…</div>
+<div id="menu" class="overlay">
+  <h1>🐾 멍냥아레나</h1>
+  <input id="name" maxlength="12" placeholder="닉네임">
+  <div class="animals">
+    <label><input type="radio" name="animal" value="cat" checked><span>🐱<small>빠름·물렁</small></span></label>
+    <label><input type="radio" name="animal" value="dog"><span>🐶<small>밸런스</small></span></label>
+    <label><input type="radio" name="animal" value="pig"><span>🐷<small>느림·탱크</small></span></label>
+  </div>
+  <button id="play">싸우러 가기</button>
+  <div style="font-size:13px;color:#557">이동 WASD · 조준/발사 마우스</div>
+</div>
+<script type="module" src="client/js/main.js"></script>
+</body>
+</html>
