@@ -55,10 +55,11 @@ class BillingManager implements PurchasesUpdatedListener {
     }
 
     void startConnection() {
-        reconnectInFlight = false;
         billingClient.startConnection(new BillingClientStateListener() {
             @Override
             public void onBillingSetupFinished(BillingResult billingResult) {
+                // 연결이 확립되어야 재연결 완료로 간주 (여기서 플래그 해제 → 진행 중엔 계속 true)
+                reconnectInFlight = false;
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     billingReady = true;
                     queryProductDetails();

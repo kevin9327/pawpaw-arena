@@ -8,11 +8,12 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
   #game { display: block; background: #d7ecc8; touch-action: none; }
-  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  #menu { background: rgba(215, 236, 200, .95); flex-direction: column; gap: 18px; z-index: 10; }
+  .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; }
+  #menu { background: rgba(215, 236, 200, .95); flex-direction: column; z-index: 10; }
+  #menu > * { margin-bottom: 18px; }
   #menu h1 { font-size: 44px; color: #4a6b3a; }
   #menu input { font-size: 18px; padding: 10px 14px; border: 2px solid #9fc487; border-radius: 12px; width: 240px; text-align: center; }
-  .animals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 360px; margin: 0 auto; }
+  .animals { display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 10px; max-width: 360px; margin: 0 auto; }
   .animals label { position: relative; cursor: pointer; background: #fff; border: 3px solid transparent; border-radius: 16px; padding: 10px 6px; font-size: 30px; text-align: center; }
   .animals label small { display: block; font-size: 12px; color: #666; }
   .animals input { display: none; }
@@ -23,7 +24,7 @@
   .animals label.locked .lock-badge { display: block; }
   @media (max-width: 420px) {
     #menu h1 { font-size: 32px; }
-    .animals { gap: 6px; }
+    .animals { grid-gap: 6px; }
     .animals label { font-size: 24px; padding: 8px 3px; border-width: 2px; }
     .animals label small { font-size: 10px; }
     #menu input { width: 200px; }
@@ -36,8 +37,8 @@
   #leaderboard { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.75); border-radius: 12px; padding: 10px 14px; font-size: 13px; min-width: 170px; z-index: 5; }
   #killfeed { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 14px; color: #444; z-index: 5; }
   #killfeed div { background: rgba(255,255,255,.7); border-radius: 8px; padding: 2px 10px; margin-bottom: 4px; }
-  #upgrade { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); display: none; gap: 10px; z-index: 6; }
-  #upgrade button { font-size: 15px; padding: 10px 16px; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); cursor: pointer; }
+  #upgrade { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); display: none; z-index: 6; }
+  #upgrade button { font-size: 15px; padding: 10px 16px; margin: 0 5px; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); cursor: pointer; }
   #respawn { display: none; background: rgba(0,0,0,.35); color: #fff; font-size: 28px; z-index: 8; }
   #online-btn { position: absolute; top: 12px; left: 12px; display: none; font-size: 14px; padding: 8px 14px; border: 0; border-radius: 10px; background: #4e5ae8; color: #fff; cursor: pointer; z-index: 6; }
   #mode-tag { position: absolute; bottom: 8px; left: 12px; font-size: 12px; color: #6a6a6a; z-index: 5; }
