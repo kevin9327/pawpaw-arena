@@ -1,7 +1,7 @@
 import { Renderer } from './render.js';
 import { InputTracker } from './input.js';
 import { OfflineGame } from './offline.js';
-import { SnapshotBuffer } from './interp.js';
+import { SnapshotBuffer, lerpState } from './interp.js';
 import { openSocket } from './net.js';
 import { Sfx } from './audio.js';
 import { isPremiumUnlocked, requestPurchase, onUnlock } from './shop.js';
@@ -173,7 +173,7 @@ function frame(now) {
     const meLive = offlineGame.world.players.get(myId);
     inp = input.sample(meLive, camera);
     const out = offlineGame.step(dt, inp);
-    state = out.state;
+    state = lerpState(out.prev, out.curr, out.alpha); // 틱 사이 보간 → 부드러운 렌더
     latestEvents.push(...out.events.filter((e) => e.t !== 'choices' || e.id !== myId));
     for (const e of out.events) if (e.t === 'choices' && e.id === myId) handleChoices(e.choices);
   } else if (mode === 'online') {
@@ -192,8 +192,9 @@ function frame(now) {
   if (state) {
     const me = state.players.find((p) => p.id === myId);
     if (me) {
-      camera.x += (me.x - camera.x) * 0.1;
-      camera.y += (me.y - camera.y) * 0.1;
+      const camK = Math.min(1, dt * 10); // 프레임레이트 독립 카메라 추종
+      camera.x += (me.x - camera.x) * camK;
+      camera.y += (me.y - camera.y) * camK;
       $('hud-hp-fill').style.width = `${Math.max(0, (100 * me.hp) / me.maxHp)}%`;
       $('hud-level').textContent = `Lv ${me.level} · ${me.score}점`;
       $('respawn').style.display = me.dead ? 'flex' : 'none';

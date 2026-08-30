@@ -21,7 +21,7 @@ export class SnapshotBuffer {
   }
 }
 
-function lerpState(s1, s2, t) {
+export function lerpState(s1, s2, t) {
   const lerp = (x, y) => x + (y - x) * t;
   const prev = new Map(s1.players.map((p) => [p.id, p]));
   return {
