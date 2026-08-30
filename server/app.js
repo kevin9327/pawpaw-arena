@@ -34,25 +34,44 @@ export function createServer() {
     }
   });
 
-  const world = new World();
-  const brains = new Map();   // botId → BotBrain
-  const clients = new Map();  // ws → playerId
+  // 다중 방: 사람이 있을 때만 방을 만든다(아무도 없으면 CPU 0). 방이 12명(사람) 차면
+  // 새 방을 만들어 최대 MAX_ROOMS개까지. 간식은 매 프레임 대신 5Hz로만 전송해 대역폭 절감.
+  const HUMAN_CAP = ROOM_SIZE;       // 방당 사람 최대 (봇이 나머지를 채움)
+  const MAX_ROOMS = 20;              // 총 방 상한 → 최대 동시 사람 240
+  const PELLET_EVERY = 4;            // 간식 전체 전송 주기(20Hz/4 = 5Hz)
+  const rooms = [];
 
-  function fillBots() {
-    while (world.players.size < ROOM_SIZE) {
-      const animals = Object.keys(ANIMALS);
-      const p = world.addPlayer({
+  function makeRoom() {
+    return { world: new World(), brains: new Map(), clients: new Map(), pelletTick: 0, sendPellets: true };
+  }
+
+  function fillBots(room) {
+    const animals = Object.keys(ANIMALS);
+    while (room.world.players.size < ROOM_SIZE) {
+      const p = room.world.addPlayer({
         name: pickBotName(Math.random),
         animal: animals[Math.floor(Math.random() * animals.length)],
         isBot: true,
       });
-      brains.set(p.id, new BotBrain(p.id, {}));
+      room.brains.set(p.id, new BotBrain(p.id, {}));
     }
-    let excess = world.players.size - ROOM_SIZE;
-    for (const [id] of brains) {
+    let excess = room.world.players.size - ROOM_SIZE;
+    for (const [id] of room.brains) {
       if (excess <= 0) break;
-      brains.delete(id); world.removePlayer(id); excess--;
+      room.brains.delete(id); room.world.removePlayer(id); excess--;
     }
+  }
+
+  function humanCount(room) {
+    let n = 0;
+    for (const p of room.world.players.values()) if (!p.isBot) n++;
+    return n;
+  }
+
+  function assignRoom() {
+    for (const r of rooms) if (humanCount(r) < HUMAN_CAP) return r;
+    if (rooms.length < MAX_ROOMS) { const r = makeRoom(); fillBots(r); rooms.push(r); return r; }
+    return null;
   }
 
   const wss = new WebSocketServer({ server: httpServer });
@@ -62,52 +81,67 @@ export function createServer() {
     ws.on('message', (raw) => {
       let msg; try { msg = JSON.parse(raw); } catch { return; }
       try {
-        const pid = clients.get(ws);
-        if (msg.t === 'join' && pid == null) {
-          const humans = [...world.players.values()].filter((q) => !q.isBot).length;
-          if (humans >= ROOM_SIZE) { ws.send(JSON.stringify({ t: 'full' })); ws.close(); return; }
+        if (msg.t === 'join' && !ws.room) {
+          const room = assignRoom();
+          if (!room) { ws.send(JSON.stringify({ t: 'full' })); ws.close(); return; }
           const animal = ANIMALS[msg.animal] ? msg.animal : 'dog';
           const name = String(msg.name ?? '').slice(0, 12).trim() || '익명동물';
-          const p = world.addPlayer({ name, animal });
-          clients.set(ws, p.id);
-          fillBots();
+          const p = room.world.addPlayer({ name, animal });
+          ws.room = room; ws.pid = p.id;
+          room.clients.set(ws, p.id);
+          fillBots(room);
+          room.sendPellets = true;   // 새 참가자에게 다음 방송에서 간식 전체 전송
           ws.send(JSON.stringify({ t: 'welcome', id: p.id, arena: ARENA }));
-        } else if (msg.t === 'input' && pid != null) {
-          world.setInput(pid, msg);
-        } else if (msg.t === 'upgrade' && pid != null) {
-          world.chooseUpgrade(pid, msg.stat);
+        } else if (msg.t === 'input' && ws.room) {
+          ws.room.world.setInput(ws.pid, msg);
+        } else if (msg.t === 'upgrade' && ws.room) {
+          ws.room.world.chooseUpgrade(ws.pid, msg.stat);
         }
       } catch {
         // 잘못된 메시지가 프로세스를 죽이지 않도록 무시
       }
     });
     ws.on('close', () => {
-      const pid = clients.get(ws);
-      if (pid != null) world.removePlayer(pid);
-      clients.delete(ws);
-      fillBots();
+      const room = ws.room;
+      if (!room) return;
+      room.world.removePlayer(ws.pid);
+      room.clients.delete(ws);
+      if (humanCount(room) === 0) {
+        const i = rooms.indexOf(room);
+        if (i >= 0) rooms.splice(i, 1);   // 빈 방은 제거 → 유휴 시 시뮬레이션 0
+      } else {
+        fillBots(room);
+      }
+      ws.room = null;
     });
   });
 
-  fillBots();
-
   const simTimer = setInterval(() => {
     const dt = 1 / TICK_RATE;
-    for (const [id, brain] of brains) world.setInput(id, brain.update(world, dt));
-    world.tick(dt);
+    for (const room of rooms) {
+      for (const [id, brain] of room.brains) room.world.setInput(id, brain.update(room.world, dt));
+      room.world.tick(dt);
+    }
   }, 1000 / TICK_RATE);
 
   const castTimer = setInterval(() => {
-    const events = world.drainEvents();
-    const pub = events.filter((e) => e.t !== 'choices');
-    const snap = world.snapshot();
-    const stateMsg = JSON.stringify({ t: 'state', ...snap, events: pub });
-    for (const [ws, pid] of clients) {
-      if (ws.readyState !== ws.OPEN) continue;
-      ws.send(stateMsg);
-      for (const e of events) {
-        if (e.t === 'choices' && e.id === pid) {
-          ws.send(JSON.stringify({ t: 'choices', choices: e.choices }));
+    for (const room of rooms) {
+      const events = room.world.drainEvents();
+      const pub = events.filter((e) => e.t !== 'choices');
+      const snap = room.world.snapshot();
+      const includePellets = room.sendPellets || (room.pelletTick % PELLET_EVERY === 0);
+      room.pelletTick++;
+      room.sendPellets = false;
+      const base = { t: 'state', tick: snap.tick, players: snap.players, bullets: snap.bullets, events: pub };
+      if (includePellets) base.pellets = snap.pellets;   // 없으면 클라가 직전 간식을 유지
+      const stateMsg = JSON.stringify(base);
+      for (const [ws, pid] of room.clients) {
+        if (ws.readyState !== ws.OPEN) continue;
+        ws.send(stateMsg);
+        for (const e of events) {
+          if (e.t === 'choices' && e.id === pid) {
+            ws.send(JSON.stringify({ t: 'choices', choices: e.choices }));
+          }
         }
       }
     }

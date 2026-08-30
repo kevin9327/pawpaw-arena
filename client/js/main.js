@@ -31,12 +31,19 @@ let lastShotAt = 0;
 let prevMyHp = null;
 let prevMyDead = false;
 let lbTimer = 0;
+let lastPellets = [];   // 온라인: 간식 5Hz 전송분을 프레임 사이에 유지
 
 // ref.sock으로 어느 소켓의 close인지 구분한다 (활성 vs 대기 소켓)
 function socketCallbacks(ref) {
   return {
     onWelcome: (msg) => { myId = msg.id; },
-    onState: (msg) => { buffer.push(msg); latestEvents.push(...(msg.events != null ? msg.events : [])); },
+    onState: (msg) => {
+      // 서버가 대역폭 절감을 위해 간식을 5Hz로만 보냄 — 없는 프레임은 직전 간식을 유지
+      if (msg.pellets != null) lastPellets = msg.pellets;
+      else msg.pellets = lastPellets;
+      buffer.push(msg);
+      latestEvents.push(...(msg.events != null ? msg.events : []));
+    },
     onChoices: (choices) => { handleChoices(choices); },
     onClose: () => {
       if (ref.sock && ref.sock === standbyWs) {
@@ -87,6 +94,7 @@ async function startOnline(sock) {
   mode = 'online';
   offlineGame = null;
   buffer.buf = [];
+  lastPellets = [];
   ws.send(JSON.stringify({ t: 'join', name: profile.name, animal: profile.animal }));
   $('mode-tag').textContent = '온라인';
   $('online-btn').style.display = 'none';
