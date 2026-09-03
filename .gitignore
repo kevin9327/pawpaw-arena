@@ -1,2 +1,6 @@
 node_modules/
 .superpowers/
+
+# 데모 영상 원본(대용량) — 저장소에 넣지 않음
+store_assets/video/
+android/tools/__pycache__/
