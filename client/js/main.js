@@ -12,6 +12,7 @@ const canvas = document.getElementById('game');
 const renderer = new Renderer(canvas);
 const input = new InputTracker(canvas);
 const $ = (id) => document.getElementById(id);
+const DEBUG = location.search.indexOf('debug=1') >= 0;
 
 let mode = null;            // 'online' | 'offline'
 let offlineGame = null;
@@ -246,6 +247,8 @@ function frame(now) {
     }
 
     renderer.draw(state, myId, camera, dt);
+    // ?debug=1: 자동 플레이/데모 녹화용 상태 노출(일반 사용자 경로엔 영향 없음)
+    if (DEBUG) window.__paw = { state, myId, camera, mode };
   }
   requestAnimationFrame(frame);
 }
