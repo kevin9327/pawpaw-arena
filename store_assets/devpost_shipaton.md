@@ -46,4 +46,4 @@ Free to play; single non‑consumable IAP ($2.39 / ₩3,300). **Promo code for j
 - [x] 1179×2556 screenshots (no device frame) → `store_assets/shipaton_*.png`
 - [~] Demo video < 2 min — final cut built by `store_assets/video/make_demo.py` (YouTube upload: 대표님 계정)
 - [ ] Promo code(s) for `premium_animals`
-- [ ] Play listing in English live (pending account‑details gate)
+- [~] Play listing in English saved; publish blocked by Play 'Account details' (Korean law) gate — also blocks AAB v1.1.0 upload (API validate: 'To comply with Korean law…')

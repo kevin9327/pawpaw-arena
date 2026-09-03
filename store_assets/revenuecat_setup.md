@@ -30,3 +30,17 @@
 2. Play 라이선스 테스터에 대표님 계정 등록(설정 → 라이선스 테스트) → 무과금 테스트 구매
 3. RevenueCat Customers 탭에서 해당 구매·`premium` 활성 확인 → 앱에서 🐰🦆🦊 해제 확인
 4. 심사관용 프로모션 코드 발급(Play 프로모션 코드 약관 동의 후)
+
+---
+## 진행 결과 (2026-09-04 새벽, 에이전트가 대시보드에서 직접 설정)
+- 프로젝트 **PawPaw Arena** (`b1ba66f8`, Games / Native Android) — Pawgram 프로젝트와 분리(엔타이틀먼트 ID 충돌 방지)
+- Play 앱 `app53125da79b` (`com.petaflo.pawpawarena`) — 공개 키는 `android/keystore.properties`의 `rcApiKey=` (gitignore)
+- 상품 `premium_animals` (`prodfa14ea944a`, Non-consumable) → 엔타이틀먼트 **premium** (`entlfe66702c7a`) 연결 완료
+- 오퍼링 **default** (`ofrng7dbfe339dc`) — 패키지 `$rc_lifetime` → Premium Animals
+- AAB v1.1.0(versionCode 2, targetSdk **36**) 빌드 완료; Play API 드라이런에서 아티팩트 검사 통과
+
+## 대표님이 마무리할 것 (RevenueCat 대시보드)
+1. **이메일 확인** — 상단 배너 "Your email address is not yet confirmed" → 메일의 링크 클릭
+2. **서비스 계정 JSON 업로드** — Apps → PawPaw Arena → "Service Account Credentials JSON"에
+   C:/Users/swsz9/Downloads/dev-fusion-493007-v1-bd41ccc10833.json 업로드 (자격증명이라 에이전트가 대신 못 함).
+   업로드 후 Products의 "Store Status: Could not check"가 정상으로 바뀜. 서비스계정에 Play Console '재무 데이터 보기' 권한 필요.
