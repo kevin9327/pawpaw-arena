@@ -49,7 +49,7 @@ export function createServer() {
     const animals = Object.keys(ANIMALS);
     while (room.world.players.size < ROOM_SIZE) {
       const p = room.world.addPlayer({
-        name: pickBotName(Math.random),
+        name: pickBotName(Math.random, 'en'),   // 온라인 방은 177개국 공용 → 영어 이름풀 기본(오프라인 봇은 로케일 일치)
         animal: animals[Math.floor(Math.random() * animals.length)],
         isBot: true,
       });
