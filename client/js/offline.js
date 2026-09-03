@@ -1,6 +1,7 @@
 import { World } from '../../shared/sim.js';
 import { BotBrain } from '../../shared/bots.js';
 import { pickBotName } from '../../shared/names.js';
+import { isKo } from './i18n.js';
 import { ROOM_SIZE, ANIMALS, TICK_RATE } from '../../shared/constants.js';
 
 export class OfflineGame {
@@ -11,7 +12,7 @@ export class OfflineGame {
     const kinds = Object.keys(ANIMALS);
     while (this.world.players.size < ROOM_SIZE) {
       const b = this.world.addPlayer({
-        name: pickBotName(Math.random),
+        name: pickBotName(Math.random, isKo ? 'ko' : 'en'),
         animal: kinds[Math.floor(Math.random() * kinds.length)],
         isBot: true,
       });
