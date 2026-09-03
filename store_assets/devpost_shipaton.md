@@ -44,6 +44,6 @@ Free to play; single non‑consumable IAP ($2.39 / ₩3,300). **Promo code for j
 ## Assets checklist
 - [x] 1024×1024 icon → `store_assets/icon_1024.png`
 - [x] 1179×2556 screenshots (no device frame) → `store_assets/shipaton_*.png`
-- [ ] Demo video < 2 min (YouTube, public)
+- [~] Demo video < 2 min — final cut built by `store_assets/video/make_demo.py` (YouTube upload: 대표님 계정)
 - [ ] Promo code(s) for `premium_animals`
 - [ ] Play listing in English live (pending account‑details gate)
