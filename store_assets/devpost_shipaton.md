@@ -1,3 +1,39 @@
+# ⚡ Devpost 제출 폼에 그대로 붙여넣기 (2026-09-04 최종본)
+
+> 상태: 해커톤 **참가 등록 완료**("Thanks for registering!"). 남은 것 = 프로젝트 생성 + 아래 값 입력.
+> 제출 URL: https://devpost.com/submit-to/29969-revenuecat-shipaton-2026/manage/submissions
+> 마감: **2026-10-01 오전 3:45 (한국시간)** — 27일 남음
+
+## Project name
+PawPaw Arena — Cute Animal .io Shooter
+
+## Elevator pitch (≤200자)
+Cats, dogs and pigs brawl in a tiny real-time arena. Grow, climb the board, and unlock premium animals — powered by RevenueCat.
+
+## Built with (태그)
+javascript, html5, canvas, node.js, websocket, android, java, webview, revenuecat, google-play, render, github-actions
+
+## Try it out 링크
+- https://play.google.com/store/apps/details?id=com.petaflo.pawpawarena
+- https://kevin9327.github.io/pawpaw-arena/
+- https://github.com/kevin9327/pawpaw-arena
+
+## 업로드 파일
+- 아이콘 1024×1024: `store_assets/icon_1024.png`
+- 스크린샷 1179×2556: `store_assets/shipaton_1_menu.png`, `shipaton_2_game.png`, `shipaton_3_game.png`
+- 데모 영상(73초): `store_assets/video/pawpaw_demo_final_1080x1920.mp4` → YouTube 공개 업로드 후 링크 입력
+
+## 카테고리 선택
+Best Game Award / Design Award / (자동) Grand Prize
+
+## 심사관 테스트 안내 (프로모션 코드 대신 쓸 문구)
+The game is free with no ads or sign-up — all core gameplay, online multiplayer and three animals
+(cat, dog, pig) are fully playable without any purchase. The single in-app product unlocks three
+extra animals that are side-grades, not power-ups, so judging does not require a purchase.
+A promo code can be provided on request.
+
+---
+
 # RevenueCat Shipaton 2026 — Devpost 제출 초안 (PawPaw Arena)
 
 **Project name:** PawPaw Arena — Cute Animal .io Shooter
