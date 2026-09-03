@@ -1,0 +1,17 @@
+# Render Free 웹서비스는 15분 유휴 시 잠들어 첫 접속자가 10~50초 봇 모드를 겪는다.
+# 10분마다 핑을 보내 항상 깨어 있게 한다. (Render 무료 한도 750h/월 ≥ 24h×31일=744h → 상시 가동 가능)
+# GitHub 스케줄은 최소 5분 간격이며 수 분 지연될 수 있음 — 10분이면 15분 슬립 임계 안쪽.
+name: keep-alive
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ping render
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -m 60 https://pawpaw-arena.onrender.com/)
+          echo "HTTP $code"
+          test "$code" = "200"

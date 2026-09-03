@@ -4,187 +4,178 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.billingclient.api.AcknowledgePurchaseParams;
-import com.android.billingclient.api.BillingClient;
-import com.android.billingclient.api.BillingClientStateListener;
-import com.android.billingclient.api.BillingFlowParams;
-import com.android.billingclient.api.BillingResult;
-import com.android.billingclient.api.PendingPurchasesParams;
-import com.android.billingclient.api.ProductDetails;
-import com.android.billingclient.api.Purchase;
-import com.android.billingclient.api.PurchasesUpdatedListener;
-import com.android.billingclient.api.QueryProductDetailsParams;
-import com.android.billingclient.api.QueryPurchasesParams;
+import com.revenuecat.purchases.CustomerInfo;
+import com.revenuecat.purchases.EntitlementInfo;
+import com.revenuecat.purchases.LogLevel;
+import com.revenuecat.purchases.ProductType;
+import com.revenuecat.purchases.PurchaseParams;
+import com.revenuecat.purchases.Purchases;
+import com.revenuecat.purchases.PurchasesConfiguration;
+import com.revenuecat.purchases.PurchasesError;
+import com.revenuecat.purchases.interfaces.GetStoreProductsCallback;
+import com.revenuecat.purchases.interfaces.PurchaseCallback;
+import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback;
+import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener;
+import com.revenuecat.purchases.models.StoreProduct;
+import com.revenuecat.purchases.models.StoreTransaction;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
- * Play Billing 7.x 래퍼.
- * premium_animals(INAPP, 비소모성) 상품의 구매/복원/확인(acknowledge)을 관리한다.
+ * RevenueCat 기반 결제 관리자 (Shipaton 요건: RevenueCat SDK로 인앱결제 1개 이상).
  *
- * 상품 미등록이거나 빌링이 unavailable(에뮬레이터, 결제 프로필 미생성 등)한 상황에서도
- * 절대 크래시하지 않고 isPremium()=false 상태를 유지한다 — 로그만 남긴다.
+ * 공개 표면은 이전 Play Billing 구현과 동일하게 유지해 MainActivity/PawBridge는 손대지 않는다:
+ *   BillingManager(Activity, Listener) / startConnection() / isPremium() / buyPremium() / endConnection()
+ *   Listener.onPremiumUnlocked()
+ *
+ * 매핑: Play 일회성(비소모성) 상품 premium_animals  →  RevenueCat 엔타이틀먼트 "premium".
+ * 잠금 해제 판정은 항상 엔타이틀먼트 활성 여부로만 한다(복원·재설치·기기변경 자동 처리).
+ * RevenueCat 콜백은 메인 스레드로 오지만, buyPremium()은 WebView 브리지 스레드에서 오므로 runOnUiThread로 넘긴다.
  */
-class BillingManager implements PurchasesUpdatedListener {
+class BillingManager {
 
     private static final String TAG = "BillingManager";
     static final String PRODUCT_ID = "premium_animals";
+    static final String ENTITLEMENT_ID = "premium";
 
     interface Listener {
         void onPremiumUnlocked();
     }
 
     private final Activity activity;
-    private final BillingClient billingClient;
     private final Listener listener;
 
-    private volatile boolean billingReady = false;
+    private volatile boolean configured = false;
     private volatile boolean premiumUnlocked = false;
-    private volatile boolean reconnectInFlight = false;
-    private volatile ProductDetails cachedProductDetails = null;
+    private volatile StoreProduct cachedProduct = null;
 
     BillingManager(Activity activity, Listener listener) {
         this.activity = activity;
         this.listener = listener;
-        this.billingClient = BillingClient.newBuilder(activity)
-                .setListener(this)
-                .enablePendingPurchases(
-                        PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
-                .build();
     }
 
+    /** SDK 구성 + 고객정보 동기화(복원) + 상품 선조회. 키가 없으면 결제만 조용히 비활성. */
     void startConnection() {
-        billingClient.startConnection(new BillingClientStateListener() {
+        if (configured) return;
+        String key = BuildConfig.RC_API_KEY;
+        if (key == null || key.isEmpty() || key.startsWith("goog_REPLACE")) {
+            Log.w(TAG, "RevenueCat API 키 미설정 — 결제 비활성 (RC_API_KEY gradle 속성 확인)");
+            return;
+        }
+        if (BuildConfig.DEBUG) Purchases.setLogLevel(LogLevel.DEBUG);
+        Purchases.configure(new PurchasesConfiguration.Builder(activity.getApplicationContext(), key).build());
+        configured = true;
+
+        Purchases.getSharedInstance().setUpdatedCustomerInfoListener(new UpdatedCustomerInfoListener() {
             @Override
-            public void onBillingSetupFinished(BillingResult billingResult) {
-                // 연결이 확립되어야 재연결 완료로 간주 (여기서 플래그 해제 → 진행 중엔 계속 true)
-                reconnectInFlight = false;
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    billingReady = true;
-                    queryProductDetails();
-                    restorePurchases();
-                } else {
-                    Log.w(TAG, "빌링 설정 실패: " + billingResult.getResponseCode()
-                            + " " + billingResult.getDebugMessage());
-                }
+            public void onReceived(CustomerInfo customerInfo) {
+                applyCustomerInfo(customerInfo);
+            }
+        });
+        Purchases.getSharedInstance().getCustomerInfo(new ReceiveCustomerInfoCallback() {
+            @Override
+            public void onReceived(CustomerInfo customerInfo) {
+                applyCustomerInfo(customerInfo);
             }
 
             @Override
-            public void onBillingServiceDisconnected() {
-                billingReady = false;
-                Log.w(TAG, "빌링 서비스 연결이 끊어짐 - 재연결 시도");
-                // 중복 재연결 방지: 재연결이 이미 진행 중이면 스킵한다.
-                if (!reconnectInFlight) {
-                    reconnectInFlight = true;
-                    startConnection();
-                }
+            public void onError(PurchasesError error) {
+                Log.w(TAG, "getCustomerInfo 실패: " + error.getMessage());
             }
         });
+        fetchProduct(null);
     }
 
-    private void queryProductDetails() {
-        QueryProductDetailsParams.Product product = QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PRODUCT_ID)
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build();
-        QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
-                .setProductList(Collections.singletonList(product))
-                .build();
+    private void fetchProduct(final Runnable then) {
+        Purchases.getSharedInstance().getProducts(
+                Collections.singletonList(PRODUCT_ID), ProductType.INAPP,
+                new GetStoreProductsCallback() {
+                    @Override
+                    public void onReceived(List<StoreProduct> storeProducts) {
+                        if (!storeProducts.isEmpty()) {
+                            cachedProduct = storeProducts.get(0);
+                        } else {
+                            Log.w(TAG, PRODUCT_ID + " 상품 조회 결과 없음 (RevenueCat 대시보드/Play 등록 확인)");
+                        }
+                        if (then != null) then.run();
+                    }
 
-        billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
-            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
-                Log.w(TAG, "상품 조회 실패: " + billingResult.getResponseCode()
-                        + " " + billingResult.getDebugMessage());
-                return;
-            }
-            if (productDetailsList == null || productDetailsList.isEmpty()) {
-                Log.w(TAG, PRODUCT_ID + " 상품이 조회되지 않음 (Play Console 미등록일 수 있음)");
-                return;
-            }
-            cachedProductDetails = productDetailsList.get(0);
-        });
-    }
-
-    private void restorePurchases() {
-        QueryPurchasesParams params = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build();
-        billingClient.queryPurchasesAsync(params, (billingResult, purchases) -> {
-            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
-                Log.w(TAG, "구매 내역 복원 실패: " + billingResult.getResponseCode());
-                return;
-            }
-            handlePurchases(purchases);
-        });
+                    @Override
+                    public void onError(PurchasesError error) {
+                        Log.w(TAG, "getProducts 실패: " + error.getMessage());
+                        if (then != null) then.run();
+                    }
+                });
     }
 
     boolean isPremium() {
         return premiumUnlocked;
     }
 
+    /** 브리지 스레드에서 호출됨 → UI 스레드로 이전 후 구매 플로우 시작. */
     void buyPremium() {
-        if (!billingReady || cachedProductDetails == null) {
-            activity.runOnUiThread(() ->
-                    Toast.makeText(activity, "잠시 후 다시 시도해주세요", Toast.LENGTH_SHORT).show());
+        activity.runOnUiThread(() -> {
+            if (premiumUnlocked) {
+                listener.onPremiumUnlocked();
+                return;
+            }
+            if (!configured) {
+                toast(ko() ? "지금은 결제를 사용할 수 없습니다" : "Purchases are unavailable right now");
+                return;
+            }
+            if (cachedProduct == null) {
+                fetchProduct(this::launchPurchase);
+                return;
+            }
+            launchPurchase();
+        });
+    }
+
+    private void launchPurchase() {
+        StoreProduct product = cachedProduct;
+        if (product == null) {
+            toast(ko() ? "상품을 불러오지 못했습니다. 잠시 후 다시 시도하세요." : "Couldn't load the product. Please try again.");
             return;
         }
+        Purchases.getSharedInstance().purchase(
+                new PurchaseParams.Builder(activity, product).build(),
+                new PurchaseCallback() {
+                    @Override
+                    public void onCompleted(StoreTransaction storeTransaction, CustomerInfo customerInfo) {
+                        applyCustomerInfo(customerInfo);
+                    }
 
-        BillingFlowParams.ProductDetailsParams productDetailsParams =
-                BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(cachedProductDetails)
-                        .build();
-        BillingFlowParams flowParams = BillingFlowParams.newBuilder()
-                .setProductDetailsParamsList(Collections.singletonList(productDetailsParams))
-                .build();
-
-        activity.runOnUiThread(() -> billingClient.launchBillingFlow(activity, flowParams));
-    }
-
-    @Override
-    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
-        int code = billingResult.getResponseCode();
-        if (code == BillingClient.BillingResponseCode.OK && purchases != null) {
-            handlePurchases(purchases);
-        } else if (code == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.i(TAG, "사용자가 구매를 취소함");
-        } else if (code == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {
-            // 이미 보유 중인데 잠금 해제가 안 된 상태 — 기존 복원 경로(queryPurchasesAsync)를
-            // 재사용해 acknowledge + premiumUnlocked + onPremiumUnlocked 콜백까지 처리한다.
-            Log.i(TAG, "이미 보유한 상품 - 구매 내역 복원으로 잠금 해제 시도");
-            restorePurchases();
-        } else {
-            Log.w(TAG, "구매 갱신 실패: " + code + " " + billingResult.getDebugMessage());
-        }
-    }
-
-    private void handlePurchases(List<Purchase> purchases) {
-        if (purchases == null) return;
-        for (Purchase purchase : purchases) {
-            if (!purchase.getProducts().contains(PRODUCT_ID)) continue;
-            if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) continue;
-
-            premiumUnlocked = true;
-            if (listener != null) {
-                listener.onPremiumUnlocked();
-            }
-
-            if (!purchase.isAcknowledged()) {
-                AcknowledgePurchaseParams ackParams = AcknowledgePurchaseParams.newBuilder()
-                        .setPurchaseToken(purchase.getPurchaseToken())
-                        .build();
-                billingClient.acknowledgePurchase(ackParams, ackResult -> {
-                    if (ackResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
-                        Log.w(TAG, "구매 확인(acknowledge) 실패: " + ackResult.getResponseCode());
+                    @Override
+                    public void onError(PurchasesError error, boolean userCancelled) {
+                        if (userCancelled) return;
+                        Log.w(TAG, "구매 실패: " + error.getMessage());
+                        toast(ko() ? "결제에 실패했습니다" : "Purchase failed");
                     }
                 });
-            }
-        }
     }
 
+    /** 엔타이틀먼트가 활성이면 잠금 해제(최초 1회만 콜백). */
+    private void applyCustomerInfo(CustomerInfo info) {
+        EntitlementInfo e = info.getEntitlements().get(ENTITLEMENT_ID);
+        boolean active = e != null && e.isActive();
+        if (!active) return;
+        boolean first = !premiumUnlocked;
+        premiumUnlocked = true;
+        if (first) listener.onPremiumUnlocked();
+    }
+
+    private static boolean ko() {
+        return "ko".equals(Locale.getDefault().getLanguage());
+    }
+
+    private void toast(final String msg) {
+        activity.runOnUiThread(() -> Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show());
+    }
+
+    /** RevenueCat은 명시적 연결 종료가 없다. 호출 호환용. */
     void endConnection() {
-        if (billingClient.isReady()) {
-            billingClient.endConnection();
-        }
+        // no-op
     }
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 // 프리미엄 동물(토끼·오리·여우) 해제 상태 관리 + 구매 요청.
 // 해제 강제는 서버가 아니라 클라이언트 측(localStorage / Android PawBridge)에서 이루어진다 — v1 한계.
 
@@ -60,11 +61,11 @@ function showFallbackModal() {
       boxShadow: '0 8px 24px rgba(0,0,0,.25)',
     });
     const msg = document.createElement('p');
-    msg.textContent = '프리미엄 동물은 모바일 앱에서 잠금 해제할 수 있어요! 🐾';
+    msg.textContent = t('premiumWeb');
     msg.style.marginBottom = '18px';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.textContent = '닫기';
+    closeBtn.textContent = t('close');
     Object.assign(closeBtn.style, {
       fontSize: '15px', padding: '10px 28px', border: '0', borderRadius: '12px',
       background: '#6aa84f', color: '#fff', cursor: 'pointer',

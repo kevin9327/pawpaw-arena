@@ -8,17 +8,26 @@ def keystoreProps = new Properties()
 if (keystorePropsFile.exists()) {
     keystoreProps.load(new FileInputStream(keystorePropsFile))
 }
+def rcApiKey = (project.findProperty('RC_API_KEY') ?: keystoreProps['rcApiKey'] ?: System.getenv('RC_API_KEY') ?: 'goog_REPLACE_ME').toString()
 
 android {
     namespace 'com.petaflo.pawpawarena'
     compileSdk 35
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId 'com.petaflo.pawpawarena'
         minSdk 24
         targetSdk 35
-        versionCode 1
-        versionName '1.0.0'
+        versionCode 2
+        versionName '1.1.0'
+
+        // RevenueCat 공개 API 키(goog_...). 우선순위: -PRC_API_KEY > keystore.properties[rcApiKey] > env RC_API_KEY > 플레이스홀더.
+        // 플레이스홀더면 앱은 결제만 조용히 비활성(BillingManager.startConnection 참조).
+        buildConfigField 'String', 'RC_API_KEY', '"' + rcApiKey + '"'
     }
 
     compileOptions {
@@ -49,7 +58,8 @@ android {
 }
 
 dependencies {
-    implementation 'com.android.billingclient:billing:7.1.1'
+    // Shipaton 요건: 인앱결제는 RevenueCat SDK 경유 (Play Billing은 SDK가 전이 의존성으로 포함)
+    implementation 'com.revenuecat.purchases:purchases:10.15.1'
     implementation 'androidx.webkit:webkit:1.11.0'
 }
 

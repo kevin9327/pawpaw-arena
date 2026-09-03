@@ -6,6 +6,7 @@ import { openSocket } from './net.js';
 import { Sfx } from './audio.js';
 import { isPremiumUnlocked, requestPurchase, onUnlock } from './shop.js';
 import { PREMIUM_ANIMALS } from '../../shared/constants.js';
+import { t, hud, applyDom } from './i18n.js';
 
 const canvas = document.getElementById('game');
 const renderer = new Renderer(canvas);
@@ -25,7 +26,7 @@ let sendTimer = 0;
 
 const sfx = new Sfx();
 const EMOJI = { cat: '🐱', dog: '🐶', pig: '🐷', rabbit: '🐰', duck: '🦆', fox: '🦊' };
-const STAT_LABELS = { damage: '🥊 공격력', fireRate: '⚡ 연사', speed: '👟 이동속도', maxHp: '❤️ 최대체력' };
+const STAT_LABELS = { damage: t('statDamage'), fireRate: t('statFireRate'), speed: t('statSpeed'), maxHp: t('statMaxHp') };
 let pendingChoices = null;
 let lastShotAt = 0;
 let prevMyHp = null;
@@ -96,7 +97,7 @@ async function startOnline(sock) {
   buffer.buf = [];
   lastPellets = [];
   ws.send(JSON.stringify({ t: 'join', name: profile.name, animal: profile.animal }));
-  $('mode-tag').textContent = '온라인';
+  $('mode-tag').textContent = t('modeOnline');
   $('online-btn').style.display = 'none';
 }
 
@@ -105,7 +106,7 @@ function startOffline() {
   ws = null;
   offlineGame = new OfflineGame(profile.name, profile.animal);
   myId = offlineGame.myId;
-  $('mode-tag').textContent = '봇 모드 (서버 깨우는 중…)';
+  $('mode-tag').textContent = t('modeWaking');
   scheduleReconnect();
 }
 
@@ -116,7 +117,7 @@ function scheduleReconnect() {
       const ref = {};
       ref.sock = await openSocket(socketCallbacks(ref));
       standbyWs = ref.sock;
-      $('mode-tag').textContent = '봇 모드 (온라인 가능!)';
+      $('mode-tag').textContent = t('modeReady');
       $('online-btn').style.display = 'block';
     } catch {
       scheduleReconnect();
@@ -140,6 +141,7 @@ document.querySelectorAll('.animals label[data-animal]').forEach((label) => {
     }
   });
 });
+applyDom();
 onUnlock(refreshAnimalLocks);
 refreshAnimalLocks();
 
@@ -157,7 +159,7 @@ $('play').addEventListener('click', async () => {
     return;
   }
   profile = {
-    name: $('name').value.trim() || '나',
+    name: $('name').value.trim() || t('me'),
     animal: chosen,
   };
   $('menu').style.display = 'none';
@@ -204,7 +206,7 @@ function frame(now) {
       camera.x += (me.x - camera.x) * camK;
       camera.y += (me.y - camera.y) * camK;
       $('hud-hp-fill').style.width = `${Math.max(0, (100 * me.hp) / me.maxHp)}%`;
-      $('hud-level').textContent = `Lv ${me.level} · ${me.score}점`;
+      $('hud-level').textContent = hud(me.level, me.score);
       $('respawn').style.display = me.dead ? 'flex' : 'none';
     }
 
@@ -213,7 +215,7 @@ function frame(now) {
     if (lbTimer <= 0) {
       lbTimer = 0.25;
       const top = [...state.players].sort((a, b) => b.score - a.score).slice(0, 10);
-      $('leaderboard').innerHTML = '<b>🏆 리더보드</b>' + top.map((p, i) =>
+      $('leaderboard').innerHTML = '<b>🏆 ' + t('leaderboard') + '</b>' + top.map((p, i) =>
         `<div${p.id === myId ? ' style="font-weight:bold;color:#2c56c9"' : ''}>` +
         `${i + 1}. ${EMOJI[p.animal] != null ? EMOJI[p.animal] : ''} ${escapeHtml(p.name)} — ${p.score}</div>`).join('');
     }
@@ -225,7 +227,7 @@ function frame(now) {
       const row = document.createElement('div');
       row.textContent = e.killerName
         ? `${EMOJI[e.killerAnimal] != null ? EMOJI[e.killerAnimal] : ''} ${e.killerName} ▶ ${EMOJI[e.victimAnimal] != null ? EMOJI[e.victimAnimal] : ''} ${e.victimName}`
-        : `${EMOJI[e.victimAnimal] != null ? EMOJI[e.victimAnimal] : ''} ${e.victimName} 사망`;
+        : `${EMOJI[e.victimAnimal] != null ? EMOJI[e.victimAnimal] : ''} ${e.victimName} ${t('died')}`;
       $('killfeed').prepend(row);
       setTimeout(() => row.remove(), 4000);
       if (e.killerId === myId) sfx.kill();

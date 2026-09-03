@@ -1,2 +1,2 @@
-# Add project specific ProGuard rules here.
-# Play Billing 클라이언트는 자체 consumer-rules.aar를 포함하므로 별도 keep 규칙 불필요.
+# RevenueCat SDK는 자체 ProGuard 규칙을 동봉한다. 클래스 누락 시에만 아래를 해제.
+#-keep class com.revenuecat.purchases.** { *; }

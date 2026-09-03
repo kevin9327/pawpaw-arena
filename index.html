@@ -52,27 +52,27 @@
 <canvas id="game"></canvas>
 <div id="hud">
   <div id="hud-hp"><div id="hud-hp-fill"></div></div>
-  <div id="hud-level">Lv 1 · 0점</div>
+  <div id="hud-level">Lv 1 · 0</div>
 </div>
 <div id="leaderboard"></div>
 <div id="killfeed"></div>
 <div id="upgrade"></div>
-<button id="online-btn">온라인 방 입장</button>
+<button id="online-btn" data-i18n="online">온라인 방 입장</button>
 <div id="mode-tag"></div>
-<div id="respawn" class="overlay">잡아먹혔다! 곧 부활…</div>
+<div id="respawn" class="overlay" data-i18n="respawn">잡아먹혔다! 곧 부활…</div>
 <div id="menu" class="overlay">
-  <h1>🐾 멍냥아레나</h1>
-  <input id="name" maxlength="12" placeholder="닉네임">
+  <h1>🐾 <span data-i18n="title">멍냥아레나</span></h1>
+  <input id="name" maxlength="12" placeholder="닉네임" data-i18n-ph="nick">
   <div class="animals">
-    <label data-animal="cat"><input type="radio" name="animal" value="cat" checked><span>🐱<small>빠름·물렁</small></span></label>
-    <label data-animal="dog"><input type="radio" name="animal" value="dog"><span>🐶<small>밸런스</small></span></label>
-    <label data-animal="pig"><input type="radio" name="animal" value="pig"><span>🐷<small>느림·탱크</small></span></label>
-    <label data-animal="rabbit"><input type="radio" name="animal" value="rabbit"><span>🐰<small>매우빠름·유리몸</small></span><span class="lock-badge">🔒</span></label>
-    <label data-animal="duck"><input type="radio" name="animal" value="duck"><span>🦆<small>밸런스+</small></span><span class="lock-badge">🔒</span></label>
-    <label data-animal="fox"><input type="radio" name="animal" value="fox"><span>🦊<small>한방·중거리</small></span><span class="lock-badge">🔒</span></label>
+    <label data-animal="cat"><input type="radio" name="animal" value="cat" checked><span>🐱<small data-i18n="cat">빠름·물렁</small></span></label>
+    <label data-animal="dog"><input type="radio" name="animal" value="dog"><span>🐶<small data-i18n="dog">밸런스</small></span></label>
+    <label data-animal="pig"><input type="radio" name="animal" value="pig"><span>🐷<small data-i18n="pig">느림·탱크</small></span></label>
+    <label data-animal="rabbit"><input type="radio" name="animal" value="rabbit"><span>🐰<small data-i18n="rabbit">매우빠름·유리몸</small></span><span class="lock-badge">🔒</span></label>
+    <label data-animal="duck"><input type="radio" name="animal" value="duck"><span>🦆<small data-i18n="duck">밸런스+</small></span><span class="lock-badge">🔒</span></label>
+    <label data-animal="fox"><input type="radio" name="animal" value="fox"><span>🦊<small data-i18n="fox">한방·중거리</small></span><span class="lock-badge">🔒</span></label>
   </div>
-  <button id="play">싸우러 가기</button>
-  <div style="font-size:13px;color:#557">이동 WASD · 조준/발사 마우스</div>
+  <button id="play" data-i18n="play">싸우러 가기</button>
+  <div style="font-size:13px;color:#557" data-i18n="controls">이동 WASD · 조준/발사 마우스</div>
 </div>
 <script type="module" src="client/js/main.js"></script>
 </body>
