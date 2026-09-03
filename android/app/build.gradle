@@ -12,7 +12,7 @@ def rcApiKey = (project.findProperty('RC_API_KEY') ?: keystoreProps['rcApiKey'] 
 
 android {
     namespace 'com.petaflo.pawpawarena'
-    compileSdk 35
+    compileSdk 36
 
     buildFeatures {
         buildConfig true
@@ -21,7 +21,7 @@ android {
     defaultConfig {
         applicationId 'com.petaflo.pawpawarena'
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode 2
         versionName '1.1.0'
 
