@@ -1,17 +1,31 @@
 # Render Free 웹서비스는 15분 유휴 시 잠들어 첫 접속자가 10~50초 봇 모드를 겪는다.
-# 10분마다 핑을 보내 항상 깨어 있게 한다. (Render 무료 한도 750h/월 ≥ 24h×31일=744h → 상시 가동 가능)
-# GitHub 스케줄은 최소 5분 간격이며 수 분 지연될 수 있음 — 10분이면 15분 슬립 임계 안쪽.
+# 원래 '*/10' 크론으로 핑을 보냈으나 GitHub 스케줄 지연이 실측 ~3시간(2026-09-04)이라 무력했음.
+# 해결: 잡 하나가 10분 간격으로 ~5.3시간 핑을 돌린 뒤 스스로 다음 잡을 dispatch(연속 가동).
+# 크론은 어떤 이유로 사슬이 끊겼을 때의 안전망. 공개 저장소라 Actions 분은 무제한.
 name: keep-alive
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '23 */5 * * *'
   workflow_dispatch:
+permissions:
+  actions: write
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
-      - name: ping render
+      - name: ping loop (10분 간격 × 33회)
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' -m 60 https://pawpaw-arena.onrender.com/)
-          echo "HTTP $code"
-          test "$code" = "200"
+          for i in $(seq 1 33); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 60 https://pawpaw-arena.onrender.com/ || echo 000)
+            echo "$(date -u +%H:%M) #$i HTTP $code"
+            [ "$i" -lt 33 ] && sleep 600
+          done
+      - name: 다음 잡 dispatch (사슬 유지)
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run keepalive.yml --ref master -R "$GITHUB_REPOSITORY"
