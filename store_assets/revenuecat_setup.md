@@ -44,3 +44,11 @@
 2. **서비스 계정 JSON 업로드** — Apps → PawPaw Arena → "Service Account Credentials JSON"에
    C:/Users/swsz9/Downloads/dev-fusion-493007-v1-bd41ccc10833.json 업로드 (자격증명이라 에이전트가 대신 못 함).
    업로드 후 Products의 "Store Status: Could not check"가 정상으로 바뀜. 서비스계정에 Play Console '재무 데이터 보기' 권한 필요.
+
+## 2026-09-05 점검 결과 (Play 한국 3칸과 무관한 항목 전부 처리)
+- **Play Console 서비스계정 권한 = 이미 충족**: `play-publisher@dev-fusion-493007-v1`에 계정 권한 「앱 정보 보기(읽기 전용)」·「재무 데이터, 주문, 취소 설문조사 응답 보기」·「주문 및 구독 관리」 전부 체크돼 있음 → RevenueCat 요구사항 충족. **대표님은 JSON 업로드만 하면 됨**(Google 쪽 전파 최대 36시간이라 빨리 올릴수록 좋음).
+- **Offering `default` = current 확정**: SDK와 같은 엔드포인트 `GET /v1/subscribers/<id>/offerings`(공개 키, X-Platform: android) 실측 → `current_offering_id=default`, 패키지 `$rc_lifetime → premium_animals`. 대시보드의 "Make Default"가 비활성인 이유는 이미 기본이기 때문(배지는 안 보임).
+- RC 대시보드에 남은 것: ① 이메일 확인 ② 서비스계정 JSON 업로드 ③ (선택) Google developer notifications 연결 — JSON 저장 후 "Connect to Google"이 뜨는데, Pub/Sub 권한 문제로 실패하면 무시해도 됨(실시간 환불 반영용, 비소모성 1개엔 영향 미미).
+- **Play 내부 테스트 트랙도 한국 게이트에 막힘**(`--track internal --dry-run` → validate 403 동일 메시지) → 3칸 입력 후 `python tools/play_upload.py --track production` 직행.
+- Render keep-alive: GitHub 스케줄이 실측 ~3시간 간격으로만 실행돼(잠들어 있었음, 첫 응답 12.5초) **자체 재dispatch 루프**로 교체(commit f53025f). 이후엔 10분 간격 핑이 끊기지 않음.
+- 스토어 미국 노출 확인(hl=en&gl=US: Install·In-app purchases 표시; 제목은 en-US 등록정보 게시 전까지 한국어).
