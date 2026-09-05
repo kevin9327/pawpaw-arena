@@ -14,6 +14,7 @@ const T = {
   fox: ['한방·중거리', 'Burst · Mid-range'],
   play: ['싸우러 가기', 'Fight!'],
   controls: ['이동 WASD · 조준/발사 마우스', 'Move WASD · Aim & fire with mouse'],
+  controlsTouch: ['왼쪽 드래그 이동 · 오른쪽 터치 조준/발사', 'Drag left to move · Tap right to aim & fire'],
   online: ['온라인 방 입장', 'Join online room'],
   respawn: ['잡아먹혔다! 곧 부활…', 'Eaten! Respawning…'],
   modeOnline: ['온라인', 'Online'],
@@ -46,5 +47,12 @@ export function applyDom() {
   for (let i = 0; i < els.length; i++) els[i].textContent = t(els[i].getAttribute('data-i18n'));
   const phs = document.querySelectorAll('[data-i18n-ph]');
   for (let i = 0; i < phs.length; i++) phs[i].setAttribute('placeholder', t(phs[i].getAttribute('data-i18n-ph')));
+  // 터치 기기(폰·태블릿·Android 앱)에는 조이스틱 안내를 보여준다. matchMedia는 Chrome 41+라 구형 WebView도 OK.
+  const coarse = (typeof window.matchMedia === 'function') && window.matchMedia('(pointer: coarse)').matches;
+  const touch = coarse || (('ontouchstart' in window) && navigator.maxTouchPoints > 0);
+  if (touch) {
+    const c = document.querySelector('[data-i18n="controls"]');
+    if (c) c.textContent = t('controlsTouch');
+  }
   document.title = t('title');
 }
